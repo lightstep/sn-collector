@@ -1,0 +1,88 @@
+#
+# Basic OpenTelemetry host metrics collection running inside a Docker container.
+# Validated with v0.95.0 on 2/21/24
+#
+receivers:
+  prometheus/self:
+    config:
+      scrape_configs:
+        - job_name: otel-collector
+          scrape_interval: 5s
+          static_configs:
+          - labels:
+              collector_name: sn-collector
+            targets:
+              - 0.0.0.0:8888
+  hostmetrics:
+    # needed to read host metrics from Docker cntainer
+    # host path ostmust be mounted to the container
+    root_path: /hostfs
+    collection_interval: 5s
+    scrapers:
+      cpu:
+      disk:
+      load:
+      processes:
+      filesystem:
+      memory:
+      paging:
+      network:
+
+processors:
+  batch:
+    send_batch_size: 1000
+    send_batch_max_size: 1500
+    timeout: 1s
+  resourcedetection:
+    detectors: ["system"]
+
+exporters:
+  # Send to Cloud Observability
+  # Create an access token at https://docs.lightstep.com/docs/create-and-manage-access-tokens
+  otlp/lightstep:
+    endpoint: ingest.lightstep.com:443
+    headers:
+      'lightstep-access-token': '${LS_TOKEN}'
+    sending_queue:
+        enabled: true
+        num_consumers: 4
+        queue_size: 100
+  # Send to HLA
+  servicenow/logs:
+    instance_logs_url: ${MID_INSTANCE_LOGS_URL}
+    insecure_skip_verify: true
+    api_key: ${MID_INSTANCE_LOGS_API_KEY}
+  # Send to Metric Intelligence
+  servicenow/metrics:
+    instance_metrics_url: ${MID_INSTANCE_METRICS_URL}
+    username: ${MID_INSTANCE_USERNAME}
+    password: ${MID_INSTANCE_PASSWORD}
+  # Send to Event Management
+  servicenow/events:
+    instance_events_url: ${MID_INSTANCE_EVENTS_URL}
+    username: ${MID_INSTANCE_USERNAME}
+    password: ${MID_INSTANCE_PASSWORD}
+  debug/detailed:
+    verbosity: detailed
+  debug:
+    verbosity: normal
+
+extensions:
+  health_check:
+  opamp:
+    server:
+      ws:
+        endpoint: https://opamp.lightstep.com/v1/opamp
+        headers:
+          "Authorization": "Bearer ${LS_OPAMP_API_KEY}"
+
+service:
+  pipelines:
+    metrics/collector:
+      receivers: [prometheus/self]
+      processors: [batch, resourcedetection]
+      exporters: [debug]
+    metrics/host:
+       receivers: [hostmetrics]
+       processors: [batch, resourcedetection]
+       exporters: [debug]

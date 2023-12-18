@@ -1,16 +1,16 @@
-FROM golang:1-bullseye AS build-env
+FROM alpine:3.16 as certs
+RUN apk --update add ca-certificates
 
-RUN go install go.opentelemetry.io/collector/cmd/builder@v0.88.0
+FROM scratch
 
-RUN apt-get update && apt-get install libpcap-dev -y
+ARG USER_UID=10001
+USER ${USER_UID}
 
-WORKDIR /otelcol
-COPY ./components ./components
-COPY otelcol-builder.yaml otelcol-builder.yaml
+COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --chmod=755 otelcol-servicenow /otelcol-servicenow
 
-RUN builder --config  otelcol-builder.yaml
+COPY collector/config/otelcol-docker-hostmetrics.yaml /etc/otelcol/config.yaml
 
-COPY ./otelcol.yaml /etc/otelcol/config.yaml
-
-ENTRYPOINT ["/otelcol/otelcol-servicenow/otelcol-servicenow"]
+ENTRYPOINT ["/otelcol-servicenow"]
 CMD ["--config", "/etc/otelcol/config.yaml"]
+EXPOSE 4317 55678 55679

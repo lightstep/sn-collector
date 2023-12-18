@@ -1,0 +1,136 @@
+# somewhat inspired from https://github.com/open-telemetry/opentelemetry-collector-releases/blob/main/.goreleaser.yaml
+project_name: sn-collector-experimental
+
+builds:
+  - id: otelcol-servicenow
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - "7"
+    ignore:
+      - goos: darwin
+        goarch: "386"
+      - goos: darwin
+        goarch: arm
+      - goos: darwin
+        goarch: s390x
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+      - goos: windows
+        goarch: s390x
+    dir: ./collector/otelcol-servicenow
+    binary: otelcol-servicenow
+    ldflags:
+      - -s
+      - -w
+    flags:
+      - -trimpath
+    env:
+      - CGO_ENABLED=0
+
+dockers:
+  - goos: linux
+    goarch: amd64
+    dockerfile: collector/Dockerfile
+    image_templates:
+      - ghcr.io/lightstep/sn-collector/sn-collector-experimental:{{ .Version }}-amd64
+      - ghcr.io/lightstep/sn-collector/sn-collector-experimental:latest-amd64
+    extra_files:
+      - collector/config/otelcol-docker-hostmetrics.yaml
+    build_flag_templates:
+      - --pull
+      - --platform=linux/amd64
+  - goos: linux
+    goarch: arm64
+    dockerfile: collector/Dockerfile
+    image_templates:
+      - ghcr.io/lightstep/sn-collector/sn-collector-experimental:{{ .Version }}-arm64
+      - ghcr.io/lightstep/sn-collector/sn-collector-experimental:latest-arm64
+    extra_files:
+      - collector/config/otelcol-docker-hostmetrics.yaml
+    build_flag_templates:
+      - --pull
+      - --platform=linux/arm64
+
+docker_manifests:
+  - name_template: "ghcr.io/lightstep/sn-collector/sn-collector-experimental:latest"
+    image_templates:
+      - "ghcr.io/lightstep/sn-collector/sn-collector-experimental:latest-amd64"
+      - "ghcr.io/lightstep/sn-collector/sn-collector-experimental:latest-arm64"
+    skip_push: false
+
+archives:
+  - id: otelcol-servicenow
+    builds:
+      - otelcol-servicenow
+    name_template: '{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}{{ if .Mips }}_{{ .Mips }}{{ end }}'
+    files:
+      - src: LICENSE
+      - src: collector/service/sn-collector.service
+        dst: install
+        strip_parent: true
+      - src: collector/service/com.servicenow.collector.plist
+        dst: install
+        strip_parent: true
+      # bundle default config files in packages
+      - src: collector/config/*.yaml
+        dst: config
+        strip_parent: true
+    format_overrides:
+      - goos: windows
+        format: zip
+
+nfpms:
+  - id: otelcol-servicenow
+    package_name: sn-collector
+    builds:
+      - otelcol-servicenow
+    vendor: ServiceNow, Inc.
+    homepage: https://servicenow.com/
+    maintainer: ServiceNow Engineering <lightstep@servicenow.com>
+    description: SerivceNow distribution of the OpenTelemetry Collector.
+    formats:
+      - apk
+      - deb
+      - rpm
+    bindir: /opt/sn-collector
+    scripts:
+      preinstall: ./collector/scripts/package/preinstall.sh
+      postinstall: ./collector/scripts/package/postinstall.sh
+    contents:
+      - dst: /opt/sn-collector
+        type: dir
+        file_info:
+          mode: 0755
+          owner: sn-collector
+          group: sn-collector
+      - src: collector/config/otelcol-linux-hostmetrics.yaml
+        dst: /opt/sn-collector/config.yaml
+        file_info:
+          mode: 0640
+          owner: sn-collector
+          group: sn-collector
+      - src: collector/service/sn-collector.service
+        dst: /usr/lib/systemd/system/sn-collector.service
+        type: config|noreplace
+        file_info:
+          mode: 0644
+          owner: root
+          group: root
+
+checksum:
+  name_template: 'checksums.txt'
+
+release:
+  draft: false
+  prerelease: "true"
+  extra_files:
+    - glob: "./collector/scripts/install/install-macos.sh"
