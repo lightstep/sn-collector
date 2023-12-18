@@ -1,0 +1,29 @@
+{
+    "product": "ServiceNow OpenTelemetry Collector",
+    "company": "ServiceNow, Inc.",
+    "license": "LICENSE.txt",
+    "upgrade-code": "456a054d-ec34-450b-b4e2-5b20c0ea8706",
+    "info": {
+    },
+    "files": [
+      {
+        "path": "otelcol-servicenow.exe"
+      },
+      {
+        "path": "config.yaml"
+      },
+      {
+        "path": "LICENSE.txt"
+      }
+    ],
+    "environments": [
+      {
+        "name": "path",
+        "value": "[INSTALLDIR]",
+        "permanent": "yes",
+        "system": "yes",
+        "action": "set",
+        "part": "last"
+      }
+    ]
+  }

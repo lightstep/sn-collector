@@ -1,0 +1,35 @@
+name: Test Install
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  # Untar and validate collector and config from *.tar.gz
+  install_gzip:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Untar latest release
+        uses: robinraju/release-downloader@v1.9
+        with:
+          latest: true
+          extract: true
+          fileName: otelcol-servicenow_*_linux_amd64.tar.gz 
+      - name:  Validate otelcol-servicenow
+        run: ./otelcol-servicenow validate --config config/otelcol-linux-hostmetrics.yaml
+
+  # Install and validate collector and config from *.deb
+  install_deb:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Download latest *.deb release
+        uses: robinraju/release-downloader@v1.9
+        with:
+          latest: true
+          extract: false
+          fileName: sn-collector_*_linux_amd64.deb 
+      - run: ls -la
+      - name: Install otelcol-servicenow
+        run: sudo dpkg -i sn-collector_*_linux_amd64.deb
+      - name: Validate otelcol-servicenow
+        run: sudo /opt/sn-collector/otelcol-servicenow validate --config /opt/sn-collector/config.yaml

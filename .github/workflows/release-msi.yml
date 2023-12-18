@@ -1,0 +1,97 @@
+# Based on https://github.com/Bedrock-OSS/regolith/blob/b340a6f4bd208b265c3a0f6bbb59206ab8486545/.github/workflows/release.yml
+# https://dev.to/abdfnx/how-to-create-a-msi-file-for-go-program-je
+
+name: Release Windows MSI
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release-msi:
+    permissions:
+      id-token: write
+      packages: write
+      contents: write
+
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '~1.21.5'
+          check-latest: true
+      
+      - name: Install Tools
+        working-directory: collector
+        run: make install-tools
+
+      - name: Build collector
+        working-directory: collector
+        run: make build-windows
+
+      - run: mv .\otelcol-servicenow\otelcol-servicenow .\otelcol-servicenow.exe
+        working-directory: collector
+
+      - name: Validate collector release
+        working-directory: collector
+        run: .\otelcol-servicenow.exe validate --config config\otelcol-windows-hostmetrics.yaml
+
+      - run: ls -la
+        shell: bash
+
+      - name: Cache Wix Toolset
+        id: cache-wix
+        uses: actions/cache@v3
+        with:
+          path: C:/wix-311
+          key: wix
+
+      - name: Set up Wix Toolset
+        if: steps.cache-wix.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p C:/wix
+          curl -o "C:/wix/wix311-binaries.zip" -OL https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311-binaries.zip
+          unzip C:/wix/wix311-binaries.zip -d "C:/wix"
+          echo "C:\wix" >> $GITHUB_PATH
+          go install github.com/stirante/go-msi@latest
+          ls -la
+          mkdir collector/windows/go-msi-tmp
+          cp collector/config/otelcol-windows-hostmetrics.yaml collector/windows/config.yaml
+          cp collector/otelcol-servicenow.exe collector/windows/otelcol-servicenow.exe
+          cp LICENSE collector/windows/LICENSE.txt
+        shell: bash
+    
+      - name: Build MSI
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          ls -la
+          cd collector/windows
+          ls -la
+          go-msi make --msi sn-collector.msi --version ${{ github.ref_name }} --src templates --out .\go-msi-tmp
+        shell: bash
+      
+      - name: Diagnostics
+        run: |
+          pwd
+          ls -la
+        shell: bash
+
+      - name: Upload MSI Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sn-collector.msi
+          path: collector/windows/sn-collector.msi
+          # Short lived because this is meant as an action for developers
+          retention-days: 1
+
+      - name: Add MSI to Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            collector/windows/sn-collector.msi
