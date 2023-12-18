@@ -1,0 +1,5 @@
+type: servicenow
+status:
+  class: exporter
+  stability:
+    alpha: [metrics, logs]

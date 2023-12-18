@@ -1,0 +1,75 @@
+#s
+# This is a work in progress.
+# Collect k8s metrics via kubeconfig and send to MetricBase
+# docker run --rm --name sn-collector-experimental ~/.kube/config:/kube/config -e KUBECONFIG=/kube/config -e MID_INSTANCE_URL=http://172.31.55.194:8090 -e MID_INSTANCE_USERNAME='...' -e MID_INSTANCE_PASSWORD='...' smithclay/sn-collector-experimental
+#
+receivers:
+  k8s_events:
+    auth_type: kubeConfig
+
+  k8s_cluster:
+    auth_type: kubeConfig
+    node_conditions_to_report: [Ready, MemoryPressure]
+
+processors:
+  resource/clustername:
+    attributes:
+    - key: k8s.cluster.name
+      value: "k8s-test-cluster"
+      action: upsert
+
+  k8sattributes:
+    passthrough: false
+    auth_type: "kubeConfig"
+    extract:
+      metadata:
+        - k8s.cluster.uid
+        - k8s.namespace.name
+        - k8s.pod.name
+        - k8s.pod.uid
+        - k8s.node.name
+        - k8s.pod.start_time
+        - k8s.deployment.name
+        - k8s.replicaset.name
+        - k8s.replicaset.uid
+        - k8s.daemonset.name
+        - k8s.daemonset.uid
+        - k8s.job.name
+        - k8s.job.uid
+        - k8s.cronjob.name
+        - k8s.statefulset.name
+        - k8s.statefulset.uid
+        - container.image.tag
+        - container.image.name
+
+exporters:
+  servicenow/logs:
+    instance_logs_url: ${MID_INSTANCE_LOGS_URL}
+    insecure_skip_verify: true
+    api_key: ${MID_INSTANCE_LOGS_API_KEY}
+  servicenow/metrics:
+    instance_metrics_url: ${MID_INSTANCE_METRICS_URL}
+    username: ${MID_INSTANCE_USERNAME}
+    password: ${MID_INSTANCE_PASSWORD}
+  servicenow/events:
+    instance_events_url: ${MID_INSTANCE_EVENTS_URL}
+    username: ${MID_INSTANCE_USERNAME}
+    password: ${MID_INSTANCE_PASSWORD}
+  debug/detailed:
+    verbosity: detailed
+  debug:
+    verbosity: normal
+
+service:
+  pipelines:
+    # metrics/in:
+    #   receivers: [k8s_cluster]
+    #   processors: [resource/clustername, k8sattributes]
+    #   exporters: [debug, servicenow/metrics]
+    logs/k8s_events:
+      receivers: [k8s_events]
+      processors: [resource/clustername, k8sattributes]
+      # HLA:
+      # exporters: [debug, servicenow/logs]
+      # Event Management:
+      exporters: [debug, servicenow/events]

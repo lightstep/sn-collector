@@ -1,0 +1,124 @@
+#
+# Purpose: get cluster-level metrics and events from a cluster and send them to Cloud Observability.
+# Based on: https://docs.honeycomb.io/integrations/kubernetes/values-files/values-deployment.yaml
+#
+mode: deployment
+
+extraEnvs:
+  - name: CLOUDOBS_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: servicenow-cloudobs-token
+        key: token
+
+# We only want one of these collectors - any more and we'd produce duplicate data
+replicaCount: 1
+
+presets:
+  # enables the k8sclusterreceiver and adds it to the metrics pipelines
+  clusterMetrics:
+    enabled: true
+  # enables the k8sobjectsreceiver to collect events only and adds it to the logs pipelines
+  kubernetesEvents:
+    enabled: true
+
+# Comment out the image and command sections to use the -contrib build of the collector
+image:
+  repository: ghcr.io/lightstep/sn-collector/sn-collector-experimental
+  pullPolicy: Always
+  tag: latest
+command:
+  name: otelcol-servicenow
+
+config:
+  receivers:
+    k8s_cluster:
+      collection_interval: 30s
+    jaeger: null
+    zipkin: null
+  
+  processors:
+    resourcedetection/gcp:
+      detectors: [env, gcp]
+      timeout: 15s
+      override: false
+    resourcedetection/eks:
+      detectors: [env, eks]
+      timeout: 15s
+      override: false
+    resourcedetection/aks:
+      detectors: [env, aks]
+      timeout: 2s
+      override: false
+    batch:
+      send_batch_size: 1000
+      send_batch_max_size: 1500
+      timeout: 1s
+    transform/events:
+      error_mode: ignore
+      log_statements:
+        - context: log
+          statements:
+            # adds a new watch-type attribute from the body if it exists
+            - set(attributes["watch-type"], body["type"]) where IsMap(body) and body["type"] != nil
+
+            # create new attributes from the body if the body is an object
+            - merge_maps(attributes, body, "upsert") where IsMap(body) and body["object"] == nil
+            - merge_maps(attributes, body["object"], "upsert") where IsMap(body) and body["object"] != nil
+
+            # Transform the attributes so that the log events use the k8s.* semantic conventions
+            - merge_maps(attributes, attributes[ "metadata"], "upsert") where IsMap(attributes[ "metadata"])
+            - set(attributes["k8s.pod.name"], attributes["regarding"]["name"]) where attributes["regarding"]["kind"] == "Pod"
+            - set(attributes["k8s.node.name"], attributes["regarding"]["name"]) where attributes["regarding"]["kind"] == "Node"
+            - set(attributes["k8s.job.name"], attributes["regarding"]["name"]) where attributes["regarding"]["kind"] == "Job"
+            - set(attributes["k8s.cronjob.name"], attributes["regarding"]["name"]) where attributes["regarding"]["kind"] == "CronJob"
+            - set(attributes["k8s.namespace.name"], attributes["regarding"]["namespace"]) where attributes["regarding"]["kind"] == "Pod" or attributes["regarding"]["kind"] == "Job" or attributes["regarding"]["kind"] == "CronJob"
+
+            # Transform the type attribtes into OpenTelemetry Severity types.
+            - set(severity_text, attributes["type"]) where attributes["type"] == "Normal" or attributes["type"] == "Warning"
+            - set(severity_number, SEVERITY_NUMBER_INFO) where attributes["type"] == "Normal"
+            - set(severity_number, SEVERITY_NUMBER_WARN) where attributes["type"] == "Warning"
+
+  exporters:
+    # Comment out the servicenow/events exporter and
+    # remove from service pipeline if using the -contrib build of the collector
+    servicenow/events:
+      instance_events_url: ${env:SERVICENOW_EVENTS_URL}
+      username: ${env:SERVICENOW_EVENTS_USERNAME}
+      password: ${env:SERVICENOW_EVENTS_PASSWORD}
+
+    otlp/cloudobs:
+      endpoint: "ingest.lighstep.com:443"
+      headers:
+        "lightstep-access-token": "${env:CLOUDOBS_TOKEN}"
+      sending_queue:
+          enabled: true
+          num_consumers: 4
+          queue_size: 100
+
+  service:
+    # This isn't the final pipeline configuration: the helm chart values
+    # will add additional components based on config options per the chart.
+    # Run helm with --dry-run to see the final collector configuration.
+    pipelines:
+      traces: null
+      # Send metrics about the collector itself to Cloud Observability
+      metrics/collector-monitoring:
+        receivers: [ prometheus ]
+        processors: [ batch ]
+        exporters: [ otlp/cloudobs ]
+      metrics:
+        exporters: [ otlp/cloudobs ]
+      logs:
+        processors: [ transform/events, batch ]
+        exporters: [ otlp/cloudobs ]
+
+ports:
+  jaeger-compact:
+    enabled: false
+  jaeger-thrift:
+    enabled: false
+  jaeger-grpc:
+    enabled: false
+  zipkin:
+    enabled: false

@@ -5,24 +5,37 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/lightstep/sn-collector/collector/servicenowexporter/internal/metadata"
+
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
-	"go.opentelemetry.io/collector/pdata/plog"
 )
 
-const (
-	typeStr   = "servicenowexporter"
-	stability = component.StabilityLevelAlpha
-)
+var errInvalidConfig = errors.New("invalid config for servicenowexporter")
 
-var errInvalidConfig = errors.New("invalid config for tcpstatsreceiver")
+func createMetricsExporter(
+	ctx context.Context,
+	set exporter.CreateSettings,
+	cfg component.Config,
+) (exporter.Metrics, error) {
+	if err := component.ValidateConfig(cfg); err != nil {
+		return nil, fmt.Errorf("cannot configure servicenow metrics exporter: %w", err)
+	}
+	oCfg := cfg.(*Config)
+	me := newServiceNowProducer(set.Logger, oCfg)
 
-type Config struct {
-}
-
-func createDefaultConfig() component.Config {
-	return &Config{}
+	return exporterhelper.NewMetricsExporter(
+		ctx,
+		set,
+		cfg,
+		me.metricsDataPusher,
+		// disable timeout
+		exporterhelper.WithTimeout(exporterhelper.TimeoutSettings{Timeout: 0}),
+		exporterhelper.WithRetry(oCfg.BackOffConfig),
+		exporterhelper.WithQueue(oCfg.QueueSettings),
+		exporterhelper.WithShutdown(me.Close),
+	)
 }
 
 func createLogsExporter(
@@ -31,20 +44,29 @@ func createLogsExporter(
 	cfg component.Config,
 ) (exporter.Logs, error) {
 	if err := component.ValidateConfig(cfg); err != nil {
-		return nil, fmt.Errorf("cannot configure servicenow logs exporter: %w", err)
+		return nil, fmt.Errorf("cannot configure servicenow metrics exporter: %w", err)
 	}
+	oCfg := cfg.(*Config)
+	me := newServiceNowProducer(set.Logger, oCfg)
+
 	return exporterhelper.NewLogsExporter(
 		ctx,
 		set,
 		cfg,
-		func(_ context.Context, _ plog.Logs) error { return nil },
+		me.logDataPusher,
+		// disable timeout
+		exporterhelper.WithTimeout(exporterhelper.TimeoutSettings{Timeout: 0}),
+		exporterhelper.WithRetry(oCfg.BackOffConfig),
+		exporterhelper.WithQueue(oCfg.QueueSettings),
+		exporterhelper.WithShutdown(me.Close),
 	)
 }
 
 func NewFactory() exporter.Factory {
 	return exporter.NewFactory(
-		typeStr,
+		metadata.Type,
 		createDefaultConfig,
-		exporter.WithLogs(createLogsExporter, stability),
+		exporter.WithMetrics(createMetricsExporter, metadata.MetricsStability),
+		exporter.WithLogs(createLogsExporter, metadata.LogsStability),
 	)
 }

@@ -1,0 +1,22 @@
+[Unit]
+Description=ServiceNow OpenTelemetry collector
+After=network.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+[Service]
+Type=simple
+User=root
+Group=sn-collector
+Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+Environment=SN_OTEL_COLLECTOR_HOME=/opt/sn-collector
+Environment=SN_OTEL_COLLECTOR_STORAGE=/opt/sn-collector/storage
+WorkingDirectory=/opt/sn-collector
+ExecStart=/opt/sn-collector/otelcol-servicenow --config config.yaml
+SuccessExitStatus=0
+TimeoutSec=20
+StandardOutput=journal
+Restart=on-failure
+RestartSec=5s
+KillMode=process
+[Install]
+WantedBy=multi-user.target

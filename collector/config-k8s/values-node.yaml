@@ -1,0 +1,115 @@
+#
+# Purpose: get node-level (kubelet) metrics workloads and send them to Cloud Observability.
+# Based on: https://docs.honeycomb.io/integrations/kubernetes/values-files/values-daemonset.yaml
+#
+
+mode: daemonset
+
+# Required to use the kubeletstats cpu/memory utilization metrics
+clusterRole:
+  create: true
+  rules:
+    - apiGroups:
+        - ""
+      resources:
+        - nodes/proxy
+      verbs:
+        - get
+
+extraEnvs:
+  - name: CLOUDOBS_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: servicenow-cloudobs-token
+        key: token
+
+presets:
+  # enables the k8sattributesprocessor and adds it to the traces, metrics, and logs pipelines
+  kubernetesAttributes:
+    enabled: true
+    extractAllPodLabels: true
+    extractAllPodAnnotations: true
+  # enables the kubeletstatsreceiver and adds it to the metrics pipelines
+  kubeletMetrics:
+    enabled: true
+  # enables metrics on the host and adds to the metrics pipelines
+  hostMetrics:
+    enabled: true
+  # enables pod logs
+  logsCollection:
+    enabled: false
+    includeCollectorLogs: true
+
+config:
+  receivers:
+    jaeger: null
+    zipkin: null
+    kubeletstats:
+      collection_interval: 30s
+      metric_groups:
+        - node
+        - pod
+      metrics:
+        k8s.node.uptime:
+          enabled: true
+        k8s.pod.uptime:
+          enabled: true
+        k8s.pod.cpu_limit_utilization:
+          enabled: true
+        k8s.pod.cpu_request_utilization:
+          enabled: true
+        k8s.pod.memory_limit_utilization:
+          enabled: true
+        k8s.pod.memory_request_utilization:
+          enabled: true
+  processors:
+    resourcedetection/gcp:
+      detectors: [env, gcp]
+      timeout: 15s
+      override: false
+    resourcedetection/eks:
+      detectors: [env, eks]
+      timeout: 15s
+      override: false
+    resourcedetection/aks:
+      detectors: [env, aks]
+      timeout: 2s
+      override: false
+
+    batch:
+      send_batch_size: 1000
+      send_batch_max_size: 1500
+      timeout: 1s
+
+  exporters:
+    otlp/cloudobs:
+      endpoint: "ingest.lighstep.com:443"
+      headers:
+        "lightstep-access-token": "${env:CLOUDOBS_TOKEN}"
+      sending_queue:
+          enabled: true
+          num_consumers: 4
+          queue_size: 100
+
+  service:
+    # This isn't the final pipeline configuration: the helm chart values
+    # will add additional components based on config options per the chart.
+    # Run helm with --dry-run to see the final collector configuration.
+    pipelines:
+      traces:
+        receivers: [otlp]
+        exporters: [otlp/cloudobs]
+      metrics:
+        exporters: [otlp/cloudobs]
+      logs:
+        exporters: [otlp/cloudobs]
+
+ports:
+  jaeger-compact:
+    enabled: false
+  jaeger-thrift:
+    enabled: false
+  jaeger-grpc:
+    enabled: false
+  zipkin:
+    enabled: false
