@@ -1,0 +1,99 @@
+# TODO: should probably allow all of these to scope to a specific instrumentation library
+apiVersion: v0.0.1
+name: otel-to-servicenow-cis
+description: Description of inferred resources and relationships from telemetry attributes
+#
+# Resources
+# These get turned into CI Classes
+#
+resources:
+# CloudObs service
+- name: service
+  sources:
+    - metrics
+    - logs
+    - spans
+  attributes:
+    - service.name
+
+# Kubernetes cluster
+- name: k8s-cluster
+  sources:
+    - metrics
+    - logs
+    - spans
+  attributes:
+    - k8s.cluster.name
+    - k8s.cluster.uid
+
+# Kubernetes namespace
+- name: k8s-namespace
+  sources:
+    - metrics
+    - logs
+    - spans
+  dependent_relations:
+    - k8s-cluster
+  attributes:
+    - k8s.cluster.name
+    - k8s.cluster.uid
+    - k8s.namespace.name
+# Kubernetes node
+- name: k8s-node
+  sources:
+    - metrics
+    - logs
+    - spans
+  dependent_relations:
+    - k8s-cluster
+  attributes:
+    - k8s.cluster.name
+    - k8s.cluster.uid
+    - k8s.node.name
+- name: k8s-pod
+  sources:
+    - metrics
+    - logs
+    - spans
+  attributes:
+    - k8s.cluster.name
+    - k8s.cluster.uid
+    - k8s.namespace.name
+    - k8s.pod.name
+    - k8s.pod.uid
+
+#
+# Relationships
+# These get turned into CI relationships
+# 
+relationships:
+# service -> service
+- name: service-to-service
+  sources:
+    - metrics
+  attributes:
+    - service.name  
+    - peer.service
+
+# service -> service (following Grafana Tempo convention)
+# https://grafana.com/docs/tempo/latest/metrics-generator/service_graphs/
+- name: service-to-service-grafana
+  metric_name: tempo_service_graph_request_total
+  sources:
+    - metrics
+  attributes:
+    - client
+    - server
+
+# deployment workload -> service
+- name: deployment-to-service
+  sources:
+    - metrics
+    - logs
+    - spans
+  attributes:
+    - k8s.cluster.uid
+    - k8s.cluster.name
+    - k8s.namespace.name
+    - k8s.deployment.name
+    - service.name
