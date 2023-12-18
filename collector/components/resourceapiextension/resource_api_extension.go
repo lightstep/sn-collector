@@ -19,7 +19,6 @@ type resourceApiExtension struct {
 }
 
 func (re *resourceApiExtension) Start(_ context.Context, host component.Host) error {
-
 	re.logger.Info("Starting resource_api extension", zap.Any("config", re.config))
 	ln, err := re.config.ToListener()
 	if err != nil {
@@ -30,7 +29,6 @@ func (re *resourceApiExtension) Start(_ context.Context, host component.Host) er
 	if err != nil {
 		return err
 	}
-	re.stopCh = make(chan struct{})
 
 	mux := http.NewServeMux()
 	mux.Handle("/", re.baseHandler())

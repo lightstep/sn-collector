@@ -21,6 +21,7 @@ exporters:
 
 extensions:
   resourceapiextension:
+    endpoint: localhost:8888
 
 service:
   extensions: [resourceapiextension]

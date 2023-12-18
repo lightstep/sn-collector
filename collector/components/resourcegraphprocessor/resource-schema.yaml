@@ -1,4 +1,6 @@
-# TODO: should probably allow all of these to scope to a specific instrumentation library
+# TODO: 
+# 1) should probably allow all of these to scope to a specific instrumentation library
+# 2) how to represent user-defined tags
 apiVersion: v0.0.1
 name: otel-to-servicenow-cis
 description: Description of inferred resources and relationships from telemetry attributes
@@ -9,58 +11,162 @@ description: Description of inferred resources and relationships from telemetry 
 resources:
 # CloudObs service
 - name: service
+  ci: cmdb_ci_service_calculated
   sources:
     - metrics
     - logs
     - spans
-  attributes:
+  id_attributes:
     - service.name
+  attributes:
+    - service.id
+    - service.version
+
+# Cloud service account
+- name: cloud-service-account
+  ci: cmdb_ci_cloud_service_account
+  sources:
+    - logs
+    - spans
+  id_attributes:
+    - cloud.account.id
+    - cloud.provider
 
 # Kubernetes cluster
 - name: k8s-cluster
+  ci: cmdb_ci_kubernetes_cluster
   sources:
     - metrics
     - logs
     - spans
-  attributes:
+  metric_source: k8s.namespace.phase
+  id_attributes:
     - k8s.cluster.name
     - k8s.cluster.uid
 
 # Kubernetes namespace
 - name: k8s-namespace
+  ci: cmdb_ci_kubernetes_namespace
   sources:
     - metrics
     - logs
     - spans
+  metric_source: k8s.namespace.phase
   dependent_relations:
     - k8s-cluster
-  attributes:
+  id_attributes:
     - k8s.cluster.name
     - k8s.cluster.uid
     - k8s.namespace.name
+
 # Kubernetes node
 - name: k8s-node
+  ci: cmdb_ci_kubernetes_node
   sources:
     - metrics
     - logs
     - spans
+  metric_source: k8s.node.cpu.time
   dependent_relations:
     - k8s-cluster
-  attributes:
+  id_attributes:
     - k8s.cluster.name
     - k8s.cluster.uid
     - k8s.node.name
+    - k8s.node.uid
+
+# Kubernetes deployment
+- name: k8s-deployment
+  ci: cmdb_ci_kubernetes_deployment
+  sources:
+    - metrics
+    - spans
+  metric_source: k8s.deployment.available
+  dependent_relations:
+    - k8s-cluster
+    - k8s-namespace
+  id_attributes:
+    - k8s.cluster.uid
+    - k8s.cluster.name
+    - k8s.namespace.name
+    - k8s.deployment.name
+    - k8s.deployment.uid
+
+# Kubernetes replicaset
+- name: k8s-replicaset
+  ci: cmdb_ci_kubernetes_replicaset
+  sources:
+    - metrics
+    - spans
+  metric_source: k8s.replicaset.available
+  dependent_relations:
+    - k8s-cluster
+    - k8s-namespace
+  id_attributes:
+    - k8s.cluster.uid
+    - k8s.cluster.name
+    - k8s.namespace.name
+    - k8s.replicaset.name
+    - k8s.replicaset.uid
+
+# Kubernetes replicaset
+- name: k8s-daemonset
+  ci: cmdb_ci_kubernetes_daemonset
+  sources:
+    - metrics
+    - spans
+  metric_source: k8s.daemonset.ready_nodes
+  dependent_relations:
+    - k8s-cluster
+    - k8s-namespace
+  id_attributes:
+    - k8s.cluster.uid
+    - k8s.cluster.name
+    - k8s.namespace.name
+    - k8s.daemonset.name
+    - k8s.daemonset.uid
+
+# Kubernetes pod
 - name: k8s-pod
+  ci: cmdb_ci_kubernetes_pod
   sources:
     - metrics
     - logs
     - spans
-  attributes:
+  metric_source: k8s.pod.memory.usage
+  dependent_relations:
+    - k8s-cluster
+    - k8s-namespace
+  id_attributes:
     - k8s.cluster.name
     - k8s.cluster.uid
     - k8s.namespace.name
     - k8s.pod.name
     - k8s.pod.uid
+
+# Kubernetes container
+- name: k8s-container
+  ci: cmdb_ci_docker_container
+  sources:
+    - metrics
+    - logs
+    - spans
+  metric_source: k8s.container.ready
+  dependent_relations:
+    - k8s-cluster
+    - k8s-namespace
+    - k8s-pod
+  id_attributes:
+    - k8s.cluster.name
+    - k8s.cluster.uid
+    - k8s.namespace.name
+    - k8s.pod.name
+    - k8s.pod.uid
+    - k8s.node.name
+    - k8s.node.uid
+    - container.id
+    - container.image.name
+    - container.image.tag
 
 #
 # Relationships
@@ -69,29 +175,36 @@ resources:
 relationships:
 # service -> service
 - name: service-to-service
+  ci_from: cmdb_ci_service_calculated
+  ci_to: cmdb_ci_service_calculated
   sources:
     - metrics
-  attributes:
+  id_attributes:
     - service.name  
     - peer.service
 
 # service -> service (following Grafana Tempo convention)
 # https://grafana.com/docs/tempo/latest/metrics-generator/service_graphs/
 - name: service-to-service-grafana
-  metric_name: tempo_service_graph_request_total
+  ci_from: cmdb_ci_service_calculated
+  ci_to: cmdb_ci_service_calculated
+  metric_source: tempo_service_graph_request_total
   sources:
     - metrics
-  attributes:
+  id_attributes:
     - client
     - server
 
 # deployment workload -> service
 - name: deployment-to-service
+  ci_from: cmdb_ci_kubernetes_deployment
+  ci_to: cmdb_ci_service_calculated
   sources:
     - metrics
     - logs
     - spans
-  attributes:
+  metric_source: k8s.deployment.available
+  id_attributes:
     - k8s.cluster.uid
     - k8s.cluster.name
     - k8s.namespace.name
