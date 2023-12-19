@@ -22,16 +22,6 @@ resources:
     - service.id
     - service.version
 
-# Cloud service account
-- name: cloud-service-account
-  ci: cmdb_ci_cloud_service_account
-  sources:
-    - logs
-    - spans
-  id_attributes:
-    - cloud.account.id
-    - cloud.provider
-
 # Kubernetes cluster
 - name: k8s-cluster
   ci: cmdb_ci_kubernetes_cluster
@@ -167,6 +157,59 @@ resources:
     - container.id
     - container.image.name
     - container.image.tag
+
+# Cloud service account
+- name: cloud-service-account
+  ci: cmdb_ci_cloud_service_account
+  sources:
+    - logs
+    - spans
+    - metrics
+  id_attributes:
+    - cloud.account.id
+    - cloud.provider
+
+# Cloud Data Center
+- name: cloud-data-center
+  ci: cmdb_ci_logical_datacenter
+  dependent_relations:
+  - cloud-service-account
+  sources:
+    - logs
+    - spans
+    - metrics
+  id_attributes:
+    - cloud.region
+    - cloud.provider
+    - cloud.availability_zone
+
+# AWS Resource
+- name: aws-resource
+  ci: multiple
+  dependent_relations:
+  - cloud-service-account
+  sources:
+    - logs
+    - spans
+    - metrics
+  id_attributes:
+    - cloud.resource_id
+    - cloud.resource_name # TODO: is service.name better here?
+
+# Azure Resource
+# TODO: I think additional azure CIs are needed
+- name: azure-resource
+  ci: multiple
+  dependent_relations:
+  - cloud-service-account
+  sources:
+    - logs
+    - spans
+    - metrics
+  id_attributes:
+    - cloud.resource_id
+  attributes:
+    - cloud.resource_name
 
 #
 # Relationships
