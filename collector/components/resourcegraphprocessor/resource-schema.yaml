@@ -1,6 +1,5 @@
 # TODO: 
-# 1) should probably allow all of these to scope to a specific instrumentation library
-# 2) how to represent user-defined tags
+# - how to represent user-defined tags
 apiVersion: v0.0.1
 name: otel-to-servicenow-cis
 description: Description of inferred resources and relationships from telemetry attributes
@@ -142,8 +141,8 @@ resources:
     - k8s.pod.name
     - k8s.pod.uid
 
-# Kubernetes container
-- name: k8s-container
+# Container
+- name: docker-container
   ci: cmdb_ci_docker_container
   sources:
     - metrics
@@ -151,18 +150,21 @@ resources:
     - spans
   metric_source: k8s.container.ready
   metric_instrumentation: otelcol/k8sclusterreceiver
-  dependent_relations:
-    - k8s-cluster
-    - k8s-namespace
-    - k8s-pod
   id_attributes:
-    - k8s.cluster.name
-    - k8s.cluster.uid
-    - k8s.namespace.name
-    - k8s.pod.name
-    - k8s.pod.uid
-    - k8s.node.name
-    - k8s.node.uid
+    - container.id
+
+# Container image
+- name: docker-container-image
+  ci: cmdb_ci_docker_image
+  sources:
+    - metrics
+    - logs
+    - spans
+  metric_source: k8s.container.ready
+  metric_instrumentation: otelcol/k8sclusterreceiver
+  dependent_relations:
+    - docker-container
+  id_attributes:
     - container.id
     - container.image.name
     - container.image.tag
@@ -202,6 +204,9 @@ resources:
     - spans
     - metrics
   id_attributes:
+    - cloud.region
+    - cloud.provider
+    - cloud.availability_zone
     - cloud.resource_id
     - cloud.resource_name # TODO: is service.name better here?
 
@@ -216,6 +221,9 @@ resources:
     - spans
     - metrics
   id_attributes:
+    - cloud.region
+    - cloud.provider
+    - cloud.availability_zone
     - cloud.resource_id
   attributes:
     - cloud.resource_name
@@ -234,6 +242,22 @@ relationships:
   id_attributes:
     - service.name  
     - peer.service
+
+- name: pod-to-image
+  ci_from: cmdb_ci_kubernetes_pod
+  ci_to: cmdb_ci_docker_image
+  metric_source: k8s.container.ready
+  metric_instrumentation: otelcol/k8sclusterreceiver
+  sources:
+    - metrics
+  id_attributes:
+    - k8s.cluster.uid
+    - k8s.cluster.name
+    - k8s.namespace.name
+    - k8s.pod.name
+    - k8s.pod.uid
+    - container.image.name
+    - container.image.tag
 
 # service -> service (following Grafana Tempo convention)
 # https://grafana.com/docs/tempo/latest/metrics-generator/service_graphs/
@@ -261,4 +285,5 @@ relationships:
     - k8s.cluster.name
     - k8s.namespace.name
     - k8s.deployment.name
+    - k8s.deployment.uid
     - service.name
