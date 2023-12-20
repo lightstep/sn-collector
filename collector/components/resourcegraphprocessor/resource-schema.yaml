@@ -20,6 +20,7 @@ resources:
     - service.name
   attributes:
     - service.id
+    - service.namespace
     - service.version
 
 # Kubernetes cluster
@@ -30,6 +31,7 @@ resources:
     - logs
     - spans
   metric_source: k8s.namespace.phase
+  metric_instrumentation: otelcol/k8sclusterreceiver
   id_attributes:
     - k8s.cluster.name
     - k8s.cluster.uid
@@ -42,6 +44,7 @@ resources:
     - logs
     - spans
   metric_source: k8s.namespace.phase
+  metric_instrumentation: otelcol/k8sclusterreceiver
   dependent_relations:
     - k8s-cluster
   id_attributes:
@@ -57,6 +60,7 @@ resources:
     - logs
     - spans
   metric_source: k8s.node.cpu.time
+  metric_instrumentation: otelcol/kubeletstatsreceiver
   dependent_relations:
     - k8s-cluster
   id_attributes:
@@ -72,6 +76,7 @@ resources:
     - metrics
     - spans
   metric_source: k8s.deployment.available
+  metric_instrumentation: otelcol/k8sclusterreceiver
   dependent_relations:
     - k8s-cluster
     - k8s-namespace
@@ -89,6 +94,7 @@ resources:
     - metrics
     - spans
   metric_source: k8s.replicaset.available
+  metric_instrumentation: otelcol/k8sclusterreceiver
   dependent_relations:
     - k8s-cluster
     - k8s-namespace
@@ -106,6 +112,7 @@ resources:
     - metrics
     - spans
   metric_source: k8s.daemonset.ready_nodes
+  metric_instrumentation: otelcol/kubeletstatsreceiver
   dependent_relations:
     - k8s-cluster
     - k8s-namespace
@@ -124,6 +131,7 @@ resources:
     - logs
     - spans
   metric_source: k8s.pod.memory.usage
+  metric_instrumentation: otelcol/kubeletstatsreceiver
   dependent_relations:
     - k8s-cluster
     - k8s-namespace
@@ -142,6 +150,7 @@ resources:
     - logs
     - spans
   metric_source: k8s.container.ready
+  metric_instrumentation: otelcol/k8sclusterreceiver
   dependent_relations:
     - k8s-cluster
     - k8s-namespace
