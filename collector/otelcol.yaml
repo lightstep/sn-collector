@@ -1,4 +1,14 @@
 receivers:
+  k8s_cluster:
+    auth_type: kubeConfig
+    node_conditions_to_report: [Ready, MemoryPressure]
+
+  hostmetrics:
+    collection_interval: 5s
+    scrapers:
+      cpu:
+      memory:
+
   osqueryreceiver:
   otlp:
     protocols:
@@ -6,30 +16,77 @@ receivers:
         endpoint: 0.0.0.0:4317
 
 processors:
+  k8sattributes:
+    passthrough: false
+    auth_type: "kubeConfig"
+    extract:
+      metadata:
+        - k8s.cluster.uid
+        - k8s.namespace.name
+        - k8s.pod.name
+        - k8s.pod.uid
+        - k8s.node.name
+        - k8s.pod.start_time
+        - k8s.deployment.name
+        - k8s.replicaset.name
+        - k8s.replicaset.uid
+        - k8s.daemonset.name
+        - k8s.daemonset.uid
+        - k8s.job.name
+        - k8s.job.uid
+        - k8s.cronjob.name
+        - k8s.statefulset.name
+        - k8s.statefulset.uid
+        - container.image.tag
+        - container.image.name
+
   resourcedetection:
     detectors: ["system"]
+  
   resource:
     attributes:
     - key: host.name
       value: "localhost"
       action: upsert
-  resourcegraphprocessor:
+  
+  resource/fakek8s:
+    attributes:
+    - key: k8s.cluster.uid
+      value: "123128934713089457123084712"
+      action: upsert
+    - key: k8s.cluster.name
+      value: "k8s-test"
+      action: upsert
+
+connectors:
+  resourcegraphconnector:
+    schema_path: /Users/clay.smith/workspace/sn-collector/collector/components/resourcegraphconnector/schema.yaml
 
 exporters:
-  logging:
+  otlp/lightstep:
+     endpoint: ingest.lightstep.com:443
+     headers:
+       "lightstep-access-token": "y5mu3HlztSMnsZWPoWlN7K6vj/nO9gvjwjyilS7M9oPFU5nMdlXfW38SfoJnRvunjG4hwq7h8fCYNw6lRPj2stz3oTAXkL2wLd/uOSel"
+
+  debug/detailed:
+    verbosity: detailed
+  debug:
     verbosity: normal
 
-extensions:
-  resourceapiextension:
-    endpoint: localhost:8888
-
 service:
-  extensions: [resourceapiextension]
   pipelines:
-    metrics:
-      receivers: [otlp]
-      processors: [resourcedetection, resourcegraphprocessor]
-      exporters: [logging]
+    metrics/out:
+      receivers: [resourcegraphconnector]
+      processors: []
+      exporters: [debug, otlp/lightstep]
+    metrics/k8s:
+      receivers: [k8s_cluster]
+      processors: [k8sattributes, resource/fakek8s]
+      exporters: [debug, resourcegraphconnector]
+    metrics/in:
+      receivers: [otlp, hostmetrics, k8s_cluster]
+      processors: [resourcedetection]
+      exporters: [debug, resourcegraphconnector]
     #logs:
     #  receivers: [osqueryreceiver]
     #  processors: []

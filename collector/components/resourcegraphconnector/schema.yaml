@@ -22,8 +22,21 @@ resources:
     - service.namespace
     - service.version
 
+# Server
+- name: server
+  ci: cmdb_ci_server
+  sources:
+    - metrics
+    - logs
+    - spans
+  id_attributes:
+    - host.name
+  attributes:
+    - host.id
+    - os.type
+
 # Kubernetes cluster
-- name: k8s-cluster
+- name: k8s.cluster
   ci: cmdb_ci_kubernetes_cluster
   sources:
     - metrics
@@ -36,7 +49,7 @@ resources:
     - k8s.cluster.uid
 
 # Kubernetes namespace
-- name: k8s-namespace
+- name: k8s.namespace
   ci: cmdb_ci_kubernetes_namespace
   sources:
     - metrics
@@ -44,15 +57,13 @@ resources:
     - spans
   metric_source: k8s.namespace.phase
   metric_instrumentation: otelcol/k8sclusterreceiver
-  dependent_relations:
-    - k8s-cluster
   id_attributes:
     - k8s.cluster.name
     - k8s.cluster.uid
     - k8s.namespace.name
 
 # Kubernetes node
-- name: k8s-node
+- name: k8s.node
   ci: cmdb_ci_kubernetes_node
   sources:
     - metrics
@@ -60,8 +71,6 @@ resources:
     - spans
   metric_source: k8s.node.cpu.time
   metric_instrumentation: otelcol/kubeletstatsreceiver
-  dependent_relations:
-    - k8s-cluster
   id_attributes:
     - k8s.cluster.name
     - k8s.cluster.uid
@@ -69,16 +78,13 @@ resources:
     - k8s.node.uid
 
 # Kubernetes deployment
-- name: k8s-deployment
+- name: k8s.deployment
   ci: cmdb_ci_kubernetes_deployment
   sources:
     - metrics
     - spans
   metric_source: k8s.deployment.available
   metric_instrumentation: otelcol/k8sclusterreceiver
-  dependent_relations:
-    - k8s-cluster
-    - k8s-namespace
   id_attributes:
     - k8s.cluster.uid
     - k8s.cluster.name
@@ -87,16 +93,13 @@ resources:
     - k8s.deployment.uid
 
 # Kubernetes replicaset
-- name: k8s-replicaset
+- name: k8s.replicaset
   ci: cmdb_ci_kubernetes_replicaset
   sources:
     - metrics
     - spans
   metric_source: k8s.replicaset.available
   metric_instrumentation: otelcol/k8sclusterreceiver
-  dependent_relations:
-    - k8s-cluster
-    - k8s-namespace
   id_attributes:
     - k8s.cluster.uid
     - k8s.cluster.name
@@ -105,16 +108,13 @@ resources:
     - k8s.replicaset.uid
 
 # Kubernetes replicaset
-- name: k8s-daemonset
+- name: k8s.daemonset
   ci: cmdb_ci_kubernetes_daemonset
   sources:
     - metrics
     - spans
   metric_source: k8s.daemonset.ready_nodes
   metric_instrumentation: otelcol/kubeletstatsreceiver
-  dependent_relations:
-    - k8s-cluster
-    - k8s-namespace
   id_attributes:
     - k8s.cluster.uid
     - k8s.cluster.name
@@ -123,7 +123,7 @@ resources:
     - k8s.daemonset.uid
 
 # Kubernetes pod
-- name: k8s-pod
+- name: k8s.pod
   ci: cmdb_ci_kubernetes_pod
   sources:
     - metrics
@@ -131,9 +131,6 @@ resources:
     - spans
   metric_source: k8s.pod.memory.usage
   metric_instrumentation: otelcol/kubeletstatsreceiver
-  dependent_relations:
-    - k8s-cluster
-    - k8s-namespace
   id_attributes:
     - k8s.cluster.name
     - k8s.cluster.uid
@@ -142,7 +139,7 @@ resources:
     - k8s.pod.uid
 
 # Container
-- name: docker-container
+- name: container
   ci: cmdb_ci_docker_container
   sources:
     - metrics
@@ -154,7 +151,7 @@ resources:
     - container.id
 
 # Container image
-- name: docker-container-image
+- name: container.image
   ci: cmdb_ci_docker_image
   sources:
     - metrics
@@ -162,15 +159,13 @@ resources:
     - spans
   metric_source: k8s.container.ready
   metric_instrumentation: otelcol/k8sclusterreceiver
-  dependent_relations:
-    - docker-container
   id_attributes:
     - container.id
     - container.image.name
     - container.image.tag
 
 # Cloud service account
-- name: cloud-service-account
+- name: cloud.account
   ci: cmdb_ci_cloud_service_account
   sources:
     - logs
@@ -181,10 +176,8 @@ resources:
     - cloud.provider
 
 # Cloud Data Center
-- name: cloud-data-center
+- name: cloud.availability_zone
   ci: cmdb_ci_logical_datacenter
-  dependent_relations:
-  - cloud-service-account
   sources:
     - logs
     - spans
@@ -195,10 +188,8 @@ resources:
     - cloud.availability_zone
 
 # AWS Resource
-- name: aws-resource
+- name: cloud.aws.resource
   ci: multiple
-  dependent_relations:
-  - cloud-service-account
   sources:
     - logs
     - spans
@@ -212,10 +203,8 @@ resources:
 
 # Azure Resource
 # TODO: I think additional azure CIs are needed
-- name: azure-resource
+- name: cloud.azure.resource
   ci: multiple
-  dependent_relations:
-  - cloud-service-account
   sources:
     - logs
     - spans
@@ -234,7 +223,7 @@ resources:
 # 
 relationships:
 # service -> service
-- name: service-to-service
+- name: service.to.service
   ci_from: cmdb_ci_service_calculated
   ci_to: cmdb_ci_service_calculated
   sources:
@@ -243,7 +232,7 @@ relationships:
     - service.name  
     - peer.service
 
-- name: pod-to-image
+- name: pod.to.image
   ci_from: cmdb_ci_kubernetes_pod
   ci_to: cmdb_ci_docker_image
   metric_source: k8s.container.ready
@@ -261,7 +250,7 @@ relationships:
 
 # service -> service (following Grafana Tempo convention)
 # https://grafana.com/docs/tempo/latest/metrics-generator/service_graphs/
-- name: service-to-service-grafana
+- name: service.to.service.grafana.tempo
   ci_from: cmdb_ci_service_calculated
   ci_to: cmdb_ci_service_calculated
   metric_source: tempo_service_graph_request_total
@@ -272,7 +261,7 @@ relationships:
     - server
 
 # deployment workload -> service
-- name: deployment-to-service
+- name: deployment.to.service
   ci_from: cmdb_ci_kubernetes_deployment
   ci_to: cmdb_ci_service_calculated
   sources:

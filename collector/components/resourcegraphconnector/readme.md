@@ -1,8 +1,8 @@
-## resourcegraphprocessor
+## resourcegraphconnector
 
-Infers resources and resource relationships from metrics, logs and traces.
+Turns telemetry into metrics representing ServiceNow CMDB CI Classes.
 
-Uses redis for persistence.
+WIP.
 
 ### usage
 
