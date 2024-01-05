@@ -9,5 +9,5 @@ ServiceNow-flavored OpenTelemetry collector experiments.
 * `components/servicenowexporter` write metrics to MID servers
 
 ### data insights
-* `components/resourcegraphprocessor` turn telemetry into CIs and CI relationships (stored in redis)
+* `components/resourcegraphconnector` turn telemetry into CIs and CI relationships
 * `components/resourceapiextension` expose detected resources as an HTTP API
