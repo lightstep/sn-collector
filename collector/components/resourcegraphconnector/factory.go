@@ -4,15 +4,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/lightstep/sn-collector/collector/resourcegraphconnector/internal/metadata"
+
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/connector"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
-)
-
-const (
-	typeStr   = "resourcegraphconnector"
-	stability = component.StabilityLevelAlpha
 )
 
 func createDefaultConfig() component.Config {
@@ -22,10 +19,10 @@ func createDefaultConfig() component.Config {
 // NewFactory returns a ConnectorFactory.
 func NewFactory() connector.Factory {
 	return connector.NewFactory(
-		typeStr,
+		metadata.Type,
 		createDefaultConfig,
-		connector.WithMetricsToMetrics(createMetricsToMetrics, stability),
-		connector.WithLogsToMetrics(createLogsToMetrics, stability),
+		connector.WithMetricsToMetrics(createMetricsToMetrics, metadata.MetricsToMetricsStability),
+		connector.WithLogsToMetrics(createLogsToMetrics, metadata.LogsToMetricsStability),
 	)
 }
 

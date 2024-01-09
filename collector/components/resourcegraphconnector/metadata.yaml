@@ -1,0 +1,6 @@
+type: resourcegraph
+
+status:
+  class: connector
+  stability:
+    alpha: [metrics_to_metrics, logs_to_metrics]
