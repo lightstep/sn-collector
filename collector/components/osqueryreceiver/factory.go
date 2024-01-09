@@ -3,21 +3,27 @@ package osqueryreceiver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"
+	"go.opentelemetry.io/collector/receiver/scraperhelper"
+
+	"github.com/lightstep/sn-collector/collector/osqueryreceiver/internal/metadata"
 )
 
 const (
-	typeStr       = "osqueryreceiver"
 	defaultSocket = "/var/osquery/osquery.em"
-	stability     = component.StabilityLevelAlpha
 )
 
 func createDefaultConfig() component.Config {
+	scs := scraperhelper.NewDefaultScraperControllerSettings(metadata.Type)
+	scs.CollectionInterval = 10 * time.Second
+
 	return &Config{
-		ExtensionsSocket: defaultSocket,
+		ExtensionsSocket:          defaultSocket,
+		ScraperControllerSettings: scs,
 	}
 }
 
@@ -39,8 +45,8 @@ func createLogsReceiver(
 
 func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
-		typeStr,
+		metadata.Type,
 		createDefaultConfig,
-		receiver.WithLogs(createLogsReceiver, stability),
+		receiver.WithLogs(createLogsReceiver, metadata.LogsStability),
 	)
 }

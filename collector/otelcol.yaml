@@ -11,7 +11,13 @@ receivers:
       cpu:
       memory:
 
-  osqueryreceiver:
+  osquery:
+    extensions_socket: /var/osquery/osquery.em
+    queries:
+      - "select * from certificates"
+      #- "select * from processes"
+      - "select * from block_devices"
+
   otlp:
     protocols:
       grpc:
@@ -89,7 +95,11 @@ service:
     #  receivers: [otlp, hostmetrics, k8s_cluster]
     #  processors: [resourcedetection]
     #  exporters: [debug, resourcegraphconnector]
-    logs/k8s_events:
-      receivers: [k8s_events]
-      processors: [k8sattributes, resource/fakek8s]
-      exporters: [debug/detailed, resourcegraphconnector]
+    logs/osquery:
+      receivers: [osquery]
+      processors: []
+      exporters: [debug/detailed, otlp/lightstep, resourcegraphconnector]
+    #logs/k8s_events:
+    #  receivers: [k8s_events]
+    #  processors: [k8sattributes, resource/fakek8s]
+    #  exporters: [debug/detailed, resourcegraphconnector]

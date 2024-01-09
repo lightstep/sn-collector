@@ -20,13 +20,13 @@ type osQueryReceiver struct {
 }
 
 func newLog(ld plog.Logs, query string, row map[string]string) plog.Logs {
-	//ld := plog.NewLogs()
 	rl := ld.ResourceLogs().AppendEmpty()
 	sl := rl.ScopeLogs().AppendEmpty()
 	lr := sl.LogRecords().AppendEmpty()
 
 	resourceAttrs := rl.Resource().Attributes()
 	resourceAttrs.PutStr("instrumentation.name", "otelcol/osqueryreciever")
+	resourceAttrs.PutStr("instrumentation.library", "osquery")
 	for k, v := range row {
 		resourceAttrs.PutStr(k, v)
 	}
@@ -57,7 +57,7 @@ func (or *osQueryReceiver) Start(ctx context.Context, _ component.Host) error {
 	}
 	or.client = client
 
-	ticker := time.NewTicker(15 * time.Second)
+	ticker := time.NewTicker(or.config.ScraperControllerSettings.CollectionInterval)
 	quit := make(chan struct{})
 	go func() {
 		for {
@@ -73,7 +73,6 @@ func (or *osQueryReceiver) Start(ctx context.Context, _ component.Host) error {
 		}
 	}()
 
-	//or.logsConsumer.ConsumeLogs(ctx, newLog("test"))
 	return nil
 }
 

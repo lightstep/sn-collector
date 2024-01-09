@@ -1,0 +1,5 @@
+type: osquery
+status:
+  class: receiver
+  stability:
+    alpha: [logs]
