@@ -106,6 +106,15 @@ func (r *resource) addResourceMetric(m pmetric.ResourceMetrics, cm *cmdbResource
 	dataPoint.SetTimestamp(pcommon.NewTimestampFromTime(time.Now()))
 }
 
+func (r *resource) hasSource(sourceType string, sources []string) bool {
+	for _, source := range sources {
+		if source == sourceType {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *resource) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 	countMetrics := pmetric.NewMetrics()
 	countMetrics.ResourceMetrics().EnsureCapacity(ld.ResourceLogs().Len())
@@ -113,6 +122,10 @@ func (r *resource) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 		rl := ld.ResourceLogs().At(i)
 
 		for _, resource := range r.resourceSchema.TelemetryResources {
+			if !r.hasSource("logs", resource.Sources) {
+				continue
+			}
+
 			cm, exists := r.detectResourceMetric(resource, rl.Resource().Attributes())
 			if exists {
 				r.logger.Info("found resource via log", zap.String("resource", cm.name))
@@ -130,6 +143,10 @@ func (r *resource) ConsumeMetrics(ctx context.Context, md pmetric.Metrics) error
 	for i := 0; i < md.ResourceMetrics().Len(); i++ {
 		rm := md.ResourceMetrics().At(i)
 		for _, resource := range r.resourceSchema.TelemetryResources {
+			if !r.hasSource("metrics", resource.Sources) {
+				continue
+			}
+
 			cm, exists := r.detectResourceMetric(resource, rm.Resource().Attributes())
 			if exists {
 				r.logger.Info("found resource via metrics", zap.String("resource", cm.name))

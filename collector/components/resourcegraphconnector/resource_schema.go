@@ -13,6 +13,7 @@ type TelemetryResource struct {
 	Sources               []string `yaml:"sources"`
 	IDAttributes          []string `yaml:"id_attributes"`
 	Attributes            []string `yaml:"attributes"`
+	Conditions            []string `yaml:"contitions"`
 	MetricSource          string   `yaml:"metric_source"`
 	MetricInstrumentation string   `yaml:"metric_instrumentation"`
 }

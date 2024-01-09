@@ -218,6 +218,19 @@ resources:
   attributes:
     - cloud.resource_name
 
+# Certificate
+- name: certificate
+  ci: cmdb_ci_certificate
+  #conditions:
+  #  - attributes["instrumentation.name"] == "otelcol/osqueryreciever"
+  sources:
+    - logs
+  id_attributes:
+    - sha1
+  attributes:
+    - issuer
+    - subject
+    - serial
 #
 # Relationships
 # These get turned into CI relationships
