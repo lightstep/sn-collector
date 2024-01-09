@@ -75,6 +75,7 @@ resources:
     - k8s.cluster.name
     - k8s.cluster.uid
     - k8s.node.name
+  attributes:
     - k8s.node.uid
 
 # Kubernetes deployment

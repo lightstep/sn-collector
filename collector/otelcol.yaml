@@ -1,4 +1,6 @@
 receivers:
+  k8s_events:
+    auth_type: kubeConfig
   k8s_cluster:
     auth_type: kubeConfig
     node_conditions_to_report: [Ready, MemoryPressure]
@@ -79,15 +81,15 @@ service:
       receivers: [resourcegraphconnector]
       processors: []
       exporters: [debug, otlp/lightstep]
-    metrics/k8s:
-      receivers: [k8s_cluster]
+    #metrics/k8s:
+    #  receivers: [k8s_cluster]
+    #  processors: [k8sattributes, resource/fakek8s]
+    #  exporters: [debug, resourcegraphconnector]
+    #metrics/in:
+    #  receivers: [otlp, hostmetrics, k8s_cluster]
+    #  processors: [resourcedetection]
+    #  exporters: [debug, resourcegraphconnector]
+    logs/k8s_events:
+      receivers: [k8s_events]
       processors: [k8sattributes, resource/fakek8s]
-      exporters: [debug, resourcegraphconnector]
-    metrics/in:
-      receivers: [otlp, hostmetrics, k8s_cluster]
-      processors: [resourcedetection]
-      exporters: [debug, resourcegraphconnector]
-    #logs:
-    #  receivers: [osqueryreceiver]
-    #  processors: []
-    #  exporters: [logging]
+      exporters: [debug/detailed, resourcegraphconnector]

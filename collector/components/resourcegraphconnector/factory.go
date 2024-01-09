@@ -25,7 +25,31 @@ func NewFactory() connector.Factory {
 		typeStr,
 		createDefaultConfig,
 		connector.WithMetricsToMetrics(createMetricsToMetrics, stability),
+		connector.WithLogsToMetrics(createLogsToMetrics, stability),
 	)
+}
+
+// createMetricsToMetrics creates a metrics to logs connector based on provided config.
+func createLogsToMetrics(
+	_ context.Context,
+	set connector.CreateSettings,
+	cfg component.Config,
+	nextConsumer consumer.Metrics,
+) (connector.Logs, error) {
+	config := cfg.(*Config)
+
+	rs, err := config.loadResourceSchema()
+	if err != nil {
+		return nil, err
+	}
+
+	return &resource{
+		metricsConsumer: nextConsumer,
+		logger:          set.Logger,
+		config:          config,
+		resourceSchema:  rs,
+		startTime:       pcommon.NewTimestampFromTime(time.Now()),
+	}, nil
 }
 
 // createMetricsToMetrics creates a metrics to metrics connector based on provided config.

@@ -29,6 +29,8 @@ receivers:
     name: "osqueryreceiver"
     path: "./components/osqueryreceiver"
   - gomod:
+      github.com/open-telemetry/opentelemetry-collector-contrib/receiver/k8seventsreceiver v0.88.0 
+  - gomod:
       github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.88.0 
   - gomod:
       github.com/open-telemetry/opentelemetry-collector-contrib/receiver/k8sclusterreceiver v0.88.0 

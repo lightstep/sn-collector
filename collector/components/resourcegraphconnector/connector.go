@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
+	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 )
 
@@ -105,6 +106,23 @@ func (r *resource) addResourceMetric(m pmetric.ResourceMetrics, cm *cmdbResource
 	dataPoint.SetTimestamp(pcommon.NewTimestampFromTime(time.Now()))
 }
 
+func (r *resource) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
+	countMetrics := pmetric.NewMetrics()
+	countMetrics.ResourceMetrics().EnsureCapacity(ld.ResourceLogs().Len())
+	for i := 0; i < ld.ResourceLogs().Len(); i++ {
+		rl := ld.ResourceLogs().At(i)
+
+		for _, resource := range r.resourceSchema.TelemetryResources {
+			cm, exists := r.detectResourceMetric(resource, rl.Resource().Attributes())
+			if exists {
+				r.logger.Info("found resource via log", zap.String("resource", cm.name))
+				r.addResourceMetric(countMetrics.ResourceMetrics().AppendEmpty(), cm)
+			}
+		}
+	}
+	return r.metricsConsumer.ConsumeMetrics(ctx, countMetrics)
+}
+
 func (r *resource) ConsumeMetrics(ctx context.Context, md pmetric.Metrics) error {
 	countMetrics := pmetric.NewMetrics()
 	countMetrics.ResourceMetrics().EnsureCapacity(md.ResourceMetrics().Len())
@@ -114,7 +132,7 @@ func (r *resource) ConsumeMetrics(ctx context.Context, md pmetric.Metrics) error
 		for _, resource := range r.resourceSchema.TelemetryResources {
 			cm, exists := r.detectResourceMetric(resource, rm.Resource().Attributes())
 			if exists {
-				r.logger.Info("found resource", zap.String("resource", cm.name))
+				r.logger.Info("found resource via metrics", zap.String("resource", cm.name))
 				r.addResourceMetric(countMetrics.ResourceMetrics().AppendEmpty(), cm)
 			}
 		}
