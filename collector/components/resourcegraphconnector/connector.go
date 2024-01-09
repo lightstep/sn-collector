@@ -48,7 +48,17 @@ type cmdbResourceMetric struct {
 }
 
 func (r *resource) detectResourceMetric(tr TelemetryResource, attrs pcommon.Map) (*cmdbResourceMetric, bool) {
-	// TODO: scope to specific instrumentation library and metric name
+	// TODO: scope to metric name
+
+	// Check if instrumentation name matches (if specified in schema)
+	if tr.InstrumentationName != "" {
+		val, exists := attrs.Get("instrumentation.name")
+		if exists {
+			if val.AsString() != tr.InstrumentationName {
+				return nil, false
+			}
+		}
+	}
 
 	// Check if all identifying attributes exist
 	exists := len(tr.IDAttributes) > 0

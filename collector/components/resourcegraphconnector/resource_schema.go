@@ -8,12 +8,12 @@ type ResourceSchema struct {
 }
 
 type TelemetryResource struct {
-	Name                  string   `yaml:"name"`
-	CI                    string   `yaml:"ci"`
-	Sources               []string `yaml:"sources"`
-	IDAttributes          []string `yaml:"id_attributes"`
-	Attributes            []string `yaml:"attributes"`
-	Conditions            []string `yaml:"contitions"`
-	MetricSource          string   `yaml:"metric_source"`
-	MetricInstrumentation string   `yaml:"metric_instrumentation"`
+	Name                string   `yaml:"name"`
+	CI                  string   `yaml:"ci"`
+	Sources             []string `yaml:"sources"`
+	IDAttributes        []string `yaml:"id_attributes"`
+	Attributes          []string `yaml:"attributes"`
+	Conditions          []string `yaml:"contitions"`
+	MetricName          string   `yaml:"metric_name"`
+	InstrumentationName string   `yaml:"instrumentation_name"`
 }

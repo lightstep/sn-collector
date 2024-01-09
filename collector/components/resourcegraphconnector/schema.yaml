@@ -42,8 +42,8 @@ resources:
     - metrics
     - logs
     - spans
-  metric_source: k8s.namespace.phase
-  metric_instrumentation: otelcol/k8sclusterreceiver
+  metric_name: k8s.namespace.phase
+  instrumentation_name: otelcol/k8sclusterreceiver
   id_attributes:
     - k8s.cluster.name
     - k8s.cluster.uid
@@ -53,10 +53,8 @@ resources:
   ci: cmdb_ci_kubernetes_namespace
   sources:
     - metrics
-    - logs
-    - spans
-  metric_source: k8s.namespace.phase
-  metric_instrumentation: otelcol/k8sclusterreceiver
+  metric_name: k8s.namespace.phase
+  instrumentation_name: otelcol/k8sclusterreceiver
   id_attributes:
     - k8s.cluster.name
     - k8s.cluster.uid
@@ -67,10 +65,8 @@ resources:
   ci: cmdb_ci_kubernetes_node
   sources:
     - metrics
-    - logs
-    - spans
-  metric_source: k8s.node.cpu.time
-  metric_instrumentation: otelcol/kubeletstatsreceiver
+  metric_name: k8s.node.cpu.time
+  instrumentation_name: otelcol/kubeletstatsreceiver
   id_attributes:
     - k8s.cluster.name
     - k8s.cluster.uid
@@ -83,9 +79,8 @@ resources:
   ci: cmdb_ci_kubernetes_deployment
   sources:
     - metrics
-    - spans
-  metric_source: k8s.deployment.available
-  metric_instrumentation: otelcol/k8sclusterreceiver
+  metric_name: k8s.deployment.available
+  instrumentation_name: otelcol/k8sclusterreceiver
   id_attributes:
     - k8s.cluster.uid
     - k8s.cluster.name
@@ -98,9 +93,8 @@ resources:
   ci: cmdb_ci_kubernetes_replicaset
   sources:
     - metrics
-    - spans
-  metric_source: k8s.replicaset.available
-  metric_instrumentation: otelcol/k8sclusterreceiver
+  metric_name: k8s.replicaset.available
+  instrumentation_name: otelcol/k8sclusterreceiver
   id_attributes:
     - k8s.cluster.uid
     - k8s.cluster.name
@@ -113,9 +107,8 @@ resources:
   ci: cmdb_ci_kubernetes_daemonset
   sources:
     - metrics
-    - spans
-  metric_source: k8s.daemonset.ready_nodes
-  metric_instrumentation: otelcol/kubeletstatsreceiver
+  metric_name: k8s.daemonset.ready_nodes
+  instrumentation_name: otelcol/kubeletstatsreceiver
   id_attributes:
     - k8s.cluster.uid
     - k8s.cluster.name
@@ -128,10 +121,8 @@ resources:
   ci: cmdb_ci_kubernetes_pod
   sources:
     - metrics
-    - logs
-    - spans
-  metric_source: k8s.pod.memory.usage
-  metric_instrumentation: otelcol/kubeletstatsreceiver
+  metric_name: k8s.pod.memory.usage
+  instrumentation_name: otelcol/kubeletstatsreceiver
   id_attributes:
     - k8s.cluster.name
     - k8s.cluster.uid
@@ -144,10 +135,8 @@ resources:
   ci: cmdb_ci_docker_container
   sources:
     - metrics
-    - logs
-    - spans
-  metric_source: k8s.container.ready
-  metric_instrumentation: otelcol/k8sclusterreceiver
+  metric_name: k8s.container.ready
+  instrumentation_name: otelcol/k8sclusterreceiver
   id_attributes:
     - container.id
 
@@ -156,10 +145,8 @@ resources:
   ci: cmdb_ci_docker_image
   sources:
     - metrics
-    - logs
-    - spans
-  metric_source: k8s.container.ready
-  metric_instrumentation: otelcol/k8sclusterreceiver
+  metric_name: k8s.container.ready
+  instrumentation_name: otelcol/k8sclusterreceiver
   id_attributes:
     - container.id
     - container.image.name
@@ -221,8 +208,7 @@ resources:
 # Certificate
 - name: certificate
   ci: cmdb_ci_certificate
-  #conditions:
-  #  - attributes["instrumentation.name"] == "otelcol/osqueryreciever"
+  instrumentation_name: otelcol/osqueryreceiver
   sources:
     - logs
   id_attributes:
@@ -231,58 +217,43 @@ resources:
     - issuer
     - subject
     - serial
-#
-# Relationships
-# These get turned into CI relationships
-# 
-relationships:
-# service -> service
-- name: service.to.service
-  ci_from: cmdb_ci_service_calculated
-  ci_to: cmdb_ci_service_calculated
-  sources:
-    - metrics
-  id_attributes:
-    - service.name  
-    - peer.service
 
-- name: pod.to.image
-  ci_from: cmdb_ci_kubernetes_pod
-  ci_to: cmdb_ci_docker_image
-  metric_source: k8s.container.ready
-  metric_instrumentation: otelcol/k8sclusterreceiver
+# Disk
+- name: disk
+  ci: cmdb_ci_disk
+  instrumentation_name: otelcol/osqueryreceiver
   sources:
-    - metrics
+    - logs
   id_attributes:
-    - k8s.cluster.uid
-    - k8s.cluster.name
-    - k8s.namespace.name
-    - k8s.pod.name
-    - k8s.pod.uid
-    - container.image.name
-    - container.image.tag
+    - name
+    - uuid
+    - host.name
 
-# service -> service (following Grafana Tempo convention)
-# https://grafana.com/docs/tempo/latest/metrics-generator/service_graphs/
+# service-to-service relationship from grafana tempo
 - name: service.to.service.grafana.tempo
-  ci_from: cmdb_ci_service_calculated
-  ci_to: cmdb_ci_service_calculated
-  metric_source: tempo_service_graph_request_total
+  ci: cmdb_ci_rel
+  metric_name: tempo_service_graph_request_total
   sources:
     - metrics
   id_attributes:
     - client
     - server
 
-# deployment workload -> service
-- name: deployment.to.service
-  ci_from: cmdb_ci_kubernetes_deployment
-  ci_to: cmdb_ci_service_calculated
+# service-to-service relationship with peer.service
+- name: service.to.service
+  ci: cmdb_ci_rel
   sources:
     - metrics
-    - logs
-    - spans
-  metric_source: k8s.deployment.available
+  id_attributes:
+    - service.name
+    - peer.service
+
+# deployment-to-service relationship
+- name: deployment.to.service
+  ci: cmdb_ci_rel
+  sources:
+    - metrics
+  metric_name: k8s.deployment.available
   id_attributes:
     - k8s.cluster.uid
     - k8s.cluster.name

@@ -25,7 +25,7 @@ func newLog(ld plog.Logs, query string, row map[string]string) plog.Logs {
 	lr := sl.LogRecords().AppendEmpty()
 
 	resourceAttrs := rl.Resource().Attributes()
-	resourceAttrs.PutStr("instrumentation.name", "otelcol/osqueryreciever")
+	resourceAttrs.PutStr("instrumentation.name", "otelcol/osqueryreceiver")
 	resourceAttrs.PutStr("instrumentation.library", "osquery")
 	for k, v := range row {
 		resourceAttrs.PutStr(k, v)
