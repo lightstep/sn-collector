@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Send AWS Config changes to ServiceNow Cloud Observability 
+Parameters:
+  CloudObsAccessToken:
+    Default: <need to fill in>
+    Type: String
+
+Resources:
+  CloudObsConnection:
+    Type: AWS::Events::Connection
+    Properties:
+      Name: CloudObsConnection
+      AuthorizationType: API_KEY
+      AuthParameters:
+        ApiKeyAuthParameters:
+          ApiKeyName: Authorization
+          ApiKeyValue:
+            Fn::Sub: "Bearer ${CloudObsAccessToken}"
+      Description: Credentials to send data to ServiceNow Cloud Observability
+
+  CloudObsApiDestination:
+    Type: AWS::Events::ApiDestination
+    Properties: 
+      ConnectionArn:
+        Fn::GetAtt: [ CloudObsConnection, Arn ]
+      Description: ServiceNow Cloud Observability API destination
+      HttpMethod: POST
+      InvocationEndpoint: "https://ingest.lightstep.com"
+      InvocationRateLimitPerSecond: 10
+      Name: CloudObsApiDestination
+
+  EventBridgeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: AllowConnectionCreation
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - events:InvokeApiDestination
+                Resource:
+                  - Fn::GetAtt: [ CloudObsApiDestination, Arn ]
+
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Listen for AWS Config rule compliance changes
+      EventPattern:
+        source:
+          - aws.config
+        detail-type:
+          - Config Configuration Item Change
+      State: ENABLED
+      Targets:
+        - Id: CloudObsApiDestination
+          Arn:
+            Fn::GetAtt: [ CloudObsApiDestination, Arn ]
+          RoleArn:
+            Fn::GetAtt: [ EventBridgeRole, Arn ]
