@@ -6,6 +6,123 @@ Parameters:
     Type: String
 
 Resources:
+  LambdaToOTLPLogRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: LambdaToOTLPLogRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+
+  LambdaToOTLPLog:
+    Type: AWS::Lambda::Function
+    Properties:
+      Environment:
+        Variables:
+          LS_ACCESS_TOKEN:
+            Fn::Sub: "${CloudObsAccessToken}"
+      Code:
+        ZipFile: >
+          import json
+          import time
+          import os
+          import http.client
+
+          def send_log(body, access_token):
+              host = 'ingest.lightstep.com'
+              path = '/v1/logs'
+              
+              headers = {
+                  'Content-Type': 'application/json',
+                  'lightstep-access-token': access_token
+              }
+              
+              connection = http.client.HTTPSConnection(host)
+              request_body = json.dumps(body)
+              print(f'sending log: {request_body}')
+
+              try:
+                  connection.request('POST', path, body=request_body, headers=headers)
+                  response = connection.getresponse()
+                  
+                  body = response.read().decode('utf-8')
+                  connection.close()
+                  return {
+                      'statusCode': response.status,
+                      'body': body 
+                  }
+              except Exception as e:
+                  print(f"An error occurred: {e}")
+                  return {
+                      'statusCode': 500,
+                      'body': e
+                  }
+
+          def create_log(ci):
+              now = time.time_ns()
+              lr = {
+                "resourceLogs": [
+                  {
+                    "resource": {
+                      "attributes": []
+                    },
+                    "scopeLogs": [
+                      {
+                        "scope": {},
+                        "logRecords": [
+                          {
+                            "timeUnixNano": f"{now}",
+                            "severityNumber": 9,
+                            "severityText": "Info",
+                            "name": "ci_change",
+                            "body": {
+                              "stringValue": "configuration item change"
+                            },
+                            "attributes": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+              
+              for key, value in ci.items():
+                  lr['resourceLogs'][0]['resource']['attributes'].append({
+                      'key': key,
+                      'value': {
+                          'stringValue': f'{value}'
+                      }
+                  })
+
+              return lr
+
+          def lambda_handler(event, context):
+              try:
+                  invokingEvent = json.loads(event['invokingEvent'])
+                  ci = invokingEvent['configurationItem']
+                  lr = create_log(ci)
+                  return send_log(lr, os.getenv('LS_ACCESS_TOKEN'))
+                  
+                  return {
+                      'statusCode': 200,
+                      'body': json.dumps(ci)
+                  }
+              except:
+                  return {
+                      'statusCode': 400,
+                      'body': 'could not process CI event'
+                  }
+
+      Handler: index.lambda_handler
+      Role:
+        Fn::GetAtt: [ LambdaToOTLPLogRole , "Arn" ]
+      Runtime: python3.12
+      Timeout: 60
+
   CloudObsConnection:
     Type: AWS::Events::Connection
     Properties:
@@ -13,9 +130,9 @@ Resources:
       AuthorizationType: API_KEY
       AuthParameters:
         ApiKeyAuthParameters:
-          ApiKeyName: Authorization
+          ApiKeyName: lightstep-access-token
           ApiKeyValue:
-            Fn::Sub: "Bearer ${CloudObsAccessToken}"
+            Fn::Sub: "${CloudObsAccessToken}"
       Description: Credentials to send data to ServiceNow Cloud Observability
 
   CloudObsApiDestination:
@@ -53,6 +170,18 @@ Resources:
                 Resource:
                   - Fn::GetAtt: [ CloudObsApiDestination, Arn ]
 
+  PermissionForEventsToInvokeLambda: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: 
+        Ref: "LambdaToOTLPLog"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: 
+        Fn::GetAtt: 
+          - "EventRule"
+          - "Arn"
+
   EventRule:
     Type: AWS::Events::Rule
     Properties:
@@ -69,3 +198,8 @@ Resources:
             Fn::GetAtt: [ CloudObsApiDestination, Arn ]
           RoleArn:
             Fn::GetAtt: [ EventBridgeRole, Arn ]
+        - Id: LambdaToOTLPLog
+          Arn:
+            Fn::GetAtt:
+              - "LambdaToOTLPLog"
+              - "Arn"
