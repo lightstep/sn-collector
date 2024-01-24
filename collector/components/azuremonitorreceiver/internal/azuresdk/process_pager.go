@@ -25,9 +25,15 @@ type ExtractorFunc[T any, U any] func(T) []U
 
 // Extractor functions match a semantic like func(p *runtime.Pager[T]) []U {return p.Value}, we write it out because Go's type parameters don't
 // generalize over value fields.
-func ExtractResourceGroups(p armresources.ResourceGroupsClientListResponse) []*armresources.ResourceGroup { return p.Value}
-func ExtractResources(p armresources.ClientListResponse) []*armresources.GenericResourceExpanded { return p.Value }
-func ExtractMetricDefinitions(p azquery.MetricsClientListDefinitionsResponse) []*azquery.MetricDefinition { return p.Value }
+func ExtractResourceGroups(p armresources.ResourceGroupsClientListResponse) []*armresources.ResourceGroup {
+	return p.Value
+}
+func ExtractResources(p armresources.ClientListResponse) []*armresources.GenericResourceExpanded {
+	return p.Value
+}
+func ExtractMetricDefinitions(p azquery.MetricsClientListDefinitionsResponse) []*azquery.MetricDefinition {
+	return p.Value
+}
 func ExtractMetrics(p azquery.MetricsClientQueryResourceResponse) []*azquery.Metric { return p.Value }
 
 // ProcessSlice applies an operation taking a context to a slice of values. It only forwards the context to the operation.
@@ -47,7 +53,7 @@ func ProcessPager[T, U any](ctx context.Context, pager *runtime.Pager[T], extrac
 	for pager.More() {
 		page, err := pager.NextPage(ctx)
 		if err != nil {
-		 	return err
+			return err
 		}
 		if err := ProcessSlice(ctx, extract(page), process); err != nil {
 			return err

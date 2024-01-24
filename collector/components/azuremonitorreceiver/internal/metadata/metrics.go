@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-//	"github.com/Azure/azure-sdk-for-go/sdk/monitor/azquery"
-//	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
-//	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azuremonitorreceiver/internal/azuresdk"
+	//	"github.com/Azure/azure-sdk-for-go/sdk/monitor/azquery"
+	//	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
+	//	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azuremonitorreceiver/internal/azuresdk"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/confmap"
 	"go.opentelemetry.io/collector/pdata/pcommon"

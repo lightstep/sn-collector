@@ -231,6 +231,7 @@ var (
 type Config struct {
 	scraperhelper.ScraperControllerSettings `mapstructure:",squash"`
 	MetricsBuilderConfig                    metadata.MetricsBuilderConfig `mapstructure:",squash"`
+	Region                                  string                        `mapstructure:"region"`
 	Cloud                                   string                        `mapstructure:"cloud"`
 	SubscriptionID                          string                        `mapstructure:"subscription_id"`
 	Authentication                          string                        `mapstructure:"auth"`

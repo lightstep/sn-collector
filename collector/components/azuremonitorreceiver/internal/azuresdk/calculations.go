@@ -10,16 +10,16 @@ import (
 )
 
 const (
-	AttributeID 			= "id"
-	AttributeLocation       = "location"
-	AttributeName           = "name"
-	AttributeResourceGroup  = "resource_group"
-	AttributeResourceType   = "type"
-	MetadataPrefix          = "metadata_"
-	TagPrefix               = "tags_"
+	AttributeID            = "id"
+	AttributeLocation      = "location"
+	AttributeName          = "name"
+	AttributeResourceGroup = "resource_group"
+	AttributeResourceType  = "type"
+	MetadataPrefix         = "metadata_"
+	TagPrefix              = "tags_"
 )
 
-// CalculateResourceAttributes
+// CalculateResourceAttributes returns a map of attributes for a given resource
 func CalculateResourceAttributes(r *armresources.GenericResourceExpanded) (map[string]*string, error) {
 	// we only need this, because ResourceGroupName isn't a field in the resource
 	rid, err := arm.ParseResourceID(*r.ID)
@@ -27,7 +27,7 @@ func CalculateResourceAttributes(r *armresources.GenericResourceExpanded) (map[s
 		return nil, err
 	}
 	attributes := map[string]*string{
-		AttributeID: 			to.Ptr(*r.ID),
+		AttributeID:            to.Ptr(*r.ID),
 		AttributeName:          r.Name,
 		AttributeResourceGroup: to.Ptr(rid.ResourceGroupName),
 		AttributeResourceType:  to.Ptr(*r.Type),
@@ -39,6 +39,9 @@ func CalculateResourceAttributes(r *armresources.GenericResourceExpanded) (map[s
 	return attributes, nil
 }
 
+// TODO: ideally we can find out on startup whether the input resources, so we don't mucho failo
+// perhaps we do this when we start and initialize the scraper? The start does the first metadata
+// fetch, so we could do it there.
 func CalculateResourceFilter(types []string, groups []string) string {
 	// TODO: switch to parsing services from
 	// https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/metrics-supported

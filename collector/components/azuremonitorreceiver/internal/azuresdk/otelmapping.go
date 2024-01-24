@@ -49,19 +49,19 @@ func GetAggregationValues(d *azquery.MetricDefinition, m *azquery.MetricValue) m
 var azureMonitorUnits = map[azquery.MetricUnit]string{
 	// mapping from AzureMonitor units to OpenTelemetry units, which are strings
 	// in "The Unified Code for Units of Measure" (UCUM) format
-	azquery.MetricUnitBitsPerSecond: "b/s",
-	azquery.MetricUnitByteSeconds: "By.s",
-	azquery.MetricUnitBytes: "By",
+	azquery.MetricUnitBitsPerSecond:  "b/s",
+	azquery.MetricUnitByteSeconds:    "By.s",
+	azquery.MetricUnitBytes:          "By",
 	azquery.MetricUnitBytesPerSecond: "By/s",
-	azquery.MetricUnitCores: "{cores}",
-	azquery.MetricUnitCount: "1",
+	azquery.MetricUnitCores:          "{cores}",
+	azquery.MetricUnitCount:          "1",
 	azquery.MetricUnitCountPerSecond: "1/s",
-	azquery.MetricUnitMilliCores: "{mcores}",
-	azquery.MetricUnitMilliSeconds: "ms",
-	azquery.MetricUnitNanoCores: "{ncores}",
-	azquery.MetricUnitPercent: "%",
-	azquery.MetricUnitSeconds: "s",
-	azquery.MetricUnitUnspecified: "",
+	azquery.MetricUnitMilliCores:     "{mcores}",
+	azquery.MetricUnitMilliSeconds:   "ms",
+	azquery.MetricUnitNanoCores:      "{ncores}",
+	azquery.MetricUnitPercent:        "%",
+	azquery.MetricUnitSeconds:        "s",
+	azquery.MetricUnitUnspecified:    "",
 }
 
 // ToOTelUnits maps Azure Monitor units to OpenTelemetry units

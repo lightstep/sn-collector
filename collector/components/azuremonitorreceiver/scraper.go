@@ -11,6 +11,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/monitor/azquery"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
@@ -22,6 +23,7 @@ import (
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azuremonitorreceiver/internal/azuresdk"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azuremonitorreceiver/internal/metadata"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azuremonitorreceiver/internal/resourcestore"
 )
 
 var (
@@ -54,26 +56,32 @@ func newScraper(conf *Config, settings receiver.CreateSettings) *azureScraper {
 		mb:                  metadata.NewMetricsBuilder(conf.MetricsBuilderConfig, settings),
 		azIDCredentialsFunc: azidentity.NewClientSecretCredential,
 		azIDWorkloadFunc:    azidentity.NewWorkloadIdentityCredential,
-		resourceMetadata: sync.Map{},
+		resources:           resourcestore.NewResourceStore(),
 	}
 }
 
 type azureScraper struct {
-	cred azcore.TokenCredential
-	cfg                    *Config
-	settings               component.TelemetrySettings
-	mb                     *metadata.MetricsBuilder
-	azIDCredentialsFunc    func(string, string, string, *azidentity.ClientSecretCredentialOptions) (*azidentity.ClientSecretCredential, error)
-	azIDWorkloadFunc       func(options *azidentity.WorkloadIdentityCredentialOptions) (*azidentity.WorkloadIdentityCredential, error)
+	cred                azcore.TokenCredential
+	cfg                 *Config
+	settings            component.TelemetrySettings
+	mb                  *metadata.MetricsBuilder
+	azIDCredentialsFunc func(string, string, string, *azidentity.ClientSecretCredentialOptions) (*azidentity.ClientSecretCredential, error)
+	azIDWorkloadFunc    func(options *azidentity.WorkloadIdentityCredentialOptions) (*azidentity.WorkloadIdentityCredential, error)
 	// metricsClient can get metric definitions and metric values by resourceID
-	metricsClient          *azquery.MetricsClient
+	metricsClient *azquery.MetricsClient
+	// metricsBatchClient is currently only in azquery v1.2.0-beta.1. It provides compelling value over alternatives for the Collector use case.
+	// I believe previous versions of the SDK provide this functionality, but you need to build the batch client yourself.
+	metricsBatchClient *azquery.MetricsBatchClient
 	// resourcesClientFactory holds some base configuration for resourcesClient and resourceGroupsClient
-	resourcesClientFactory *armresources.ClientFactory
-	resourcesClient        *armresources.Client
+	resourcesClient *armresources.Client
 	// we only need to use the resource groups client to list resource groups when the client configures the receiver to do so
-	resourceGroupsClient   *armresources.ResourceGroupsClient
-	// resourceMetadata holds the resource structs and their related metric definitions
-	resourceMetadata       sync.Map
+	resourceGroupsClient *armresources.ResourceGroupsClient
+	// resources is a map[resourceType]BatchResourceData{
+	// 		resources   map[resourceID]*armresources.GenericResourceExpanded
+	// 		definitions map[string]*azquery.MetricDefinition
+	// }
+	resources *resourcestore.ResourceStore
+	// underneath we treat this as a map[resourceType][]*azureResourceData
 }
 
 // TODO: see what the race detector wants to protect the resources map
@@ -96,17 +104,32 @@ func (s *azureScraper) runResourcesCacheUpdater(ctx context.Context) {
 	}()
 }
 
+// update
+// 1. fetch the resources
+// 		send a map of IDs (a set) for updating
+// 		fetch defintions for each resource (if we don't have them)
+// 2. store the resources we fetch
+
+// TODO: store resources by type
 func (s *azureScraper) updateResourcesCache(ctx context.Context) {
 	// keep a copy of keys in the map
-	var currentKeys map[string]void
-	s.resourceMetadata.Range(func(key any, value any) bool {
-		currentKeys[key.(string)] = struct{}{}
+	var currentKeys map[string]map[string]struct{}
+	s.resources.Range(func(resourceType any, value any) bool {
+		for key := range value.(map[string]*azureResourceData) {
+			if _, ok := currentKeys[resourceType.(string)]; !ok {
+				currentKeys[resourceType.(string)] = make(map[string]struct{})
+			}
+			currentKeys[resourceType.(string)][key] = struct{}{}
+		}
 		return true
 	})
 	rs, err := s.fetchResources(ctx)
 	if err != nil {
 		s.settings.Logger.Error("failed to get Azure Resources data", zap.Error(err))
 		return
+	}
+	for _, r := range rs {
+		s.resources.Store(r)
 	}
 	var wg sync.WaitGroup
 	for _, r := range rs {
@@ -123,18 +146,24 @@ func (s *azureScraper) updateResourcesCache(ctx context.Context) {
 				s.settings.Logger.Error("failed to calculate Azure Resource attributes", zap.Error(err))
 				return
 			}
-			s.resourceMetadata.Store(*r.ID, &azureResourceData{
+			resourceType := *r.Type
+			rt, ok := s.resources.Load(resourceType)
+			if !ok {
+				s.resources.Store(resourceType, make(map[string]*azureResourceData))
+			}
+			// NOTE: will this work for a sync.Map? I think so, but need to test.
+			rt.(map[string]*azureResourceData)[*r.ID] = &azureResourceData{
 				resource:          r,
 				metricDefinitions: defs,
 				attributes:        attrs,
 				tags:              r.Tags,
-			})
+			}
 			delete(currentKeys, *r.ID)
 		}(r)
 	}
 	wg.Wait()
 	for key := range currentKeys {
-		s.resourceMetadata.Delete(key)
+		s.resources.Delete(key)
 	}
 }
 
@@ -182,16 +211,44 @@ func (s *azureScraper) fetchDefinitions(ctx context.Context, rid string) (map[st
 	return defs, nil
 }
 
-func (s *azureScraper) start(ctx context.Context, _ component.Host) (err error) {
+func (s *azureScraper) instantiateClients() (err error) {
 	if err = s.loadCredentials(); err != nil {
-		return err
+		return
 	}
-	// TODO: calculate opts based on config
+
+	// TODO: calculate opts based on config - configure retry, logging, telemetry, etc
 	opts := &policy.ClientOptions{}
-	s.resourcesClientFactory, err = armresources.NewClientFactory(s.cfg.SubscriptionID, s.cred, opts)
-	// begin by initalizing
+	clientFactory, err := armresources.NewClientFactory(s.cfg.SubscriptionID, s.cred, opts)
+	if err != nil {
+		return
+	}
+
+	s.resourcesClient = clientFactory.NewClient()
+	s.resourceGroupsClient = clientFactory.NewResourceGroupsClient()
+
+	// TODO: calculate opts based on config - configure retry, logging, telemetry, etc
+	metricsOptions := &azquery.MetricsClientOptions{}
+	if s.metricsClient, err = azquery.NewMetricsClient(s.cred, metricsOptions); err != nil {
+		s.settings.Logger.Error("failed to create Azure Metrics client", zap.Error(err))
+		return
+	}
+
+	endpoint := fmt.Sprintf("https://%s.metrics.monitor.azure.com", s.cfg.Region)
+	// TODO: calculate opts based on config - configure retry, logging, telemetry, etc
+	metricsBatchOptions := &azquery.MetricsBatchClientOptions{}
+	if s.metricsBatchClient, err = azquery.NewMetricsBatchClient(endpoint, s.cred, metricsBatchOptions); err != nil {
+		s.settings.Logger.Error("failed to create Azure Metrics Batch client", zap.Error(err))
+		return
+	}
+
+}
+
+func (s *azureScraper) start(ctx context.Context, _ component.Host) (err error) {
+	if err = s.instantiateClients(); err != nil {
+		return
+	}
+	// initialize the resource metadata cache and start the updater
 	s.updateResourcesCache(ctx)
-	// set to run periodically based on config
 	s.runResourcesCacheUpdater(ctx)
 
 	return
@@ -213,11 +270,13 @@ func (s *azureScraper) loadCredentials() (err error) {
 	return nil
 }
 
+// scrape will get batches which are by resource type, it will further batch them by other constraints (e.g. time grain),
+// and then it will limit by API batch request size. We may need filters for time grain.
 func (s *azureScraper) scrape(ctx context.Context) (pmetric.Metrics, error) {
 	// TODO: make opts based on config
 	opts := &azquery.MetricsClientQueryResourceOptions{}
 	wg := sync.WaitGroup{}
-	s.resourceMetadata.Range(func(key any, value interface{}) bool {
+	s.resources.Range(func(key any, value interface{}) bool {
 		v, ok := value.(azureResourceData)
 		if !ok {
 			s.settings.Logger.Error("type assertion to azureResourceData")
@@ -252,6 +311,142 @@ func (s *azureScraper) scrape(ctx context.Context) (pmetric.Metrics, error) {
 var (
 	metadataPrefix = "metadata_"
 )
+
+// func (s *ResourceStore) Keys() []string {
+// 	var keys []string
+// 	s.sm.Range(func(key, value interface{}) bool {
+// 		keys = append(keys, key.(string))
+// 		return true
+// 	})
+// 	return keys
+// }
+
+// TODO: put this in Config, verify the max allowable in the SDK,
+// and possibly make sure that config can't exceed the SDK constraint.
+const maxResourcesPerCall = 5
+
+// The use case for batching describes the Collector's case perfectly:
+// 		https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/migrate-to-batch-api?tabs=individual-response#paging
+
+// for each batch, compose a batch metrics call
+// 		- all resources in a batch must be in the same subscription.
+
+func (s *azureScraper) getBatchMetricsValues(ctx context.Context) {
+	// the outer function is to range to get all resources in a type from the untyped sync.Map
+	// 1. fetch the batches of resources
+	// 2. handle the batch of resources
+	// var resType map[string][]azureResourceData
+	s.resources.Range(func(resourceType any, value any) bool {
+		// TODO: get this into a function that returns this type. We don't
+		// 		want to return from the Range function, so we need to do this
+		resourceBatches, ok := value.(map[string]*resourcestore.ResourceBatch)
+		if !ok {
+			s.settings.Logger.Error("type assertion to azureResourceData")
+			return true
+		}
+		return true
+	})
+	for compositeKey, metricsByGrain := range resType.metricsByCompositeKey {
+		if time.Since(metricsByGrain.metricsValuesUpdated).Seconds() < float64(timeGrains[compositeKey.timeGrain]) {
+			continue
+		}
+		now := time.Now().UTC()
+		metricsByGrain.metricsValuesUpdated = now
+		startTime := now.Add(time.Duration(-timeGrains[compositeKey.timeGrain]) * time.Second)
+		s.settings.Logger.Info("getBatchMetricsValues", zap.String("resourceType", resourceType), zap.Any("metricNames", metricsByGrain.metrics), zap.Any("startTime", startTime), zap.Any("now", now), zap.String("timeGrain", compositeKey.timeGrain))
+
+		start := 0
+		for start < len(metricsByGrain.metrics) {
+
+			end := start + s.cfg.MaximumNumberOfMetricsInACall
+			if end > len(metricsByGrain.metrics) {
+				end = len(metricsByGrain.metrics)
+			}
+
+			// QueryBatch in the SDK uses https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/migrate-to-batch-api
+			// So per docs, we'll need to consider the following restrictions when constructing calls:
+			// 		- All resources in a batch must be in the same subscription.
+			// 		- All resources in a batch must be in the same Azure region.
+			// 		- All resources in a batch must be the same resource type.
+
+			// res, err := metricsBatchClient.QueryBatch(
+			// 	context.Background(),
+			// 	subscriptionID,
+			// 	"Microsoft.Storage/storageAccounts",
+			// 	[]string{"Ingress"},
+			// 	azquery.ResourceIDList{ResourceIDs: to.SliceOfPtrs(resourceURI1, resourceURI2)},
+			// 	&azquery.MetricsBatchClientQueryBatchOptions{
+			// 		Aggregation: to.SliceOfPtrs(azquery.AggregationTypeAverage),
+			// 		StartTime:   to.Ptr("2023-11-15"),
+			// 		EndTime:     to.Ptr("2023-11-16"),
+			// 		Interval:    to.Ptr("PT5M"),
+			// 	},
+			// )
+			var resourceIDs []string
+			for _, res := range resType {
+				resourceIDs = append(resourceIDs, *res.resource.ID)
+			}
+			// TODO: let's test how much we can batch.
+			response, err := s.metricsBatchClient.QueryBatch(
+				ctx,
+				s.cfg.SubscriptionID,
+				resourceType,
+				// metricsByGrain.metrics[start:end],
+				// let's just build a couple of calls for resources
+
+				&azquery.ResourceIDList{ResourceIDs: resType.resourceIds},
+				// azquery.ResourceIDList{ResourceIDs: resType.resourceIds},
+				&azquery.MetricsBatchClientQueryBatchOptions{
+					Aggregation: to.SliceOfPtrs(
+						azquery.AggregationTypeAverage,
+						azquery.AggregationTypeMaximum,
+						azquery.AggregationTypeMinimum,
+						azquery.AggregationTypeTotal,
+						azquery.AggregationTypeCount,
+					),
+					StartTime: to.Ptr(startTime.Format(time.RFC3339)),
+					EndTime:   to.Ptr(now.Format(time.RFC3339)),
+					Interval:  to.Ptr(compositeKey.timeGrain),
+					// Top:       to.Ptr(int32(s.cfg.MaximumNumberOfDimensionsInACall)), // Defaults to 10 (may be limiting results)
+				},
+			)
+
+			if err != nil {
+				s.settings.Logger.Error("failed to get Azure Metrics values data", zap.Error(err))
+				return
+			}
+
+			start = end
+			for _, metricValues := range response.Values {
+				for _, metric := range metricValues.Values {
+					for _, timeseriesElement := range metric.TimeSeries {
+
+						if timeseriesElement.Data != nil {
+							res := s.resources[*metricValues.ResourceID]
+							attributes := map[string]*string{}
+							for name, value := range res.attributes {
+								attributes[name] = value
+							}
+							for _, value := range timeseriesElement.MetadataValues {
+								name := metadataPrefix + *value.Name.Value
+								attributes[name] = value.Value
+							}
+							if s.cfg.AppendTagsAsAttributes {
+								for tagName, value := range res.tags {
+									name := tagPrefix + tagName
+									attributes[name] = value
+								}
+							}
+							for _, metricValue := range timeseriesElement.Data {
+								s.processQueryTimeseriesData(*metricValues.ResourceID, metric, metricValue, attributes)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
 
 func (s *azureScraper) processMetric(ctx context.Context, d *azquery.MetricDefinition, m *azquery.Metric) {
 	attrs := map[string]*string{}
