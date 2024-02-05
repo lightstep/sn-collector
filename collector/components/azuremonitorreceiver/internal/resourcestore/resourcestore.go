@@ -5,8 +5,8 @@
 // is something like this:
 //
 //	map[resourceType]struct{
-//		metricsDefinitions map[metricID]metricDefinition
-//		resources map[resourceID]ResourceBatch
+//		metricsDefinitions 	map[metricID]metricDefinition
+//		resources 			map[resourceID]ResourceBatch
 //	}
 //
 // But the implementation uses sync.Map for the maps. The risk of dirty reads between starting
@@ -27,7 +27,6 @@ package resourcestore
 
 import (
 	"errors"
-	// "strings"
 	"sync"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
@@ -35,42 +34,38 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 )
 
-// ResourceStore is a typesafe wrapper on sync.Map
+// ResourceStore is a typesafe wrapper on sync.Map. The underlying type is
+// map[resourceType]ResourceBatch.
 type ResourceStore struct {
-	// think of the underlying type as map[resourceType]ResourceBatch
 	m sync.Map
 }
-
-// StoreDefinitions(ds []*azquery.MetricDefinition)
-// GetDefinitions(resourceType string) (map[string]*azquery.MetricDefinition, bool)
-// StoreResources(rs []*armresources.GenericResourceExpanded)
-// GetResources(resourceType string) (map[string]*armresources.GenericResourceExpanded, bool)
 
 // NewResourceStore creates a new ResourceStore.
 func NewResourceStore() *ResourceStore {
 	return &ResourceStore{}
 }
 
-func (rs *ResourceStore) getDefinitions(resourceID string) (map[string]*azquery.MetricDefinition, error) {
-	resType, err := arm.ParseResourceType(resourceID)
-	if err != nil {
-		return nil, err
-	}
-	v, ok := rs.m.Load(resType.String())
+func (rs *ResourceStore) GetDefinitions(resourceType string) (map[string]*azquery.MetricDefinition, bool) {
+	v, ok := rs.m.Load(resourceType)
 	if !ok {
-		return nil, errors.New("resource type not found")
+		return nil, false
 	}
-	// NOTE: we can return a copy of the map, but we don't need to for a couple reasons:
 	rb, ok := v.(*ResourceBatch)
 	if !ok {
-		return nil, errors.New("error asserting to resource batch")
+		return nil, false
 	}
-	resDefs, ok := rb.getDefinitionsByResource(resourceID)
-	if !ok {
-		return nil, errors.New("resource not found")
+	defs := rb.Definitions()
+	mds := make(map[string]*azquery.MetricDefinition)
+	// for namespaces
+	for _, v := range defs {
+		// for definitions
+		for k, v := range v {
+			mds[k] = v
+		}
 	}
-	return resDefs, nil
+	return mds, true
 }
+
 
 func (rs *ResourceStore) StoreDefinitions(ds []*azquery.MetricDefinition) error {
     // avoids possible panic on index out of range and nil dereference
@@ -86,38 +81,41 @@ func (rs *ResourceStore) StoreDefinitions(ds []*azquery.MetricDefinition) error 
 	if err != nil {
 		return err
 	}
+
 	// 1. load value or create one
-    v, _ := rs.m.LoadOrStore(resType.String(), newResourceBatch(resType.String()))
-	// we could do something to check this, but it's not necessary
+    v, _ := rs.m.LoadOrStore(resType.String(), NewResourceBatch(resType.String()))
+
 	// 2. type assert the value to a ResourceBatch
     rb, ok := v.(*ResourceBatch)
     if !ok {
         return errors.New("error asserting to resource batch")
     }
+
 	// 3. store the definitions in the ResourceBatch
-    if err := rb.StoreDefinitions(resID, ds); err != nil {
+    if err := rb.StoreDefinitions(ds); err != nil {
         return err
     }
+
 	// 4. store the ResourceBatch in the ResourceStore_sync.Map
 	rs.m.Store(resType.String(), rb)
     return nil
 }
 
+// TODO: I think this should be moved to the ResourceBatch type.
 func (rs *ResourceStore) storeResources(resourceOrType string, rss []*armresources.GenericResourceExpanded) (set, error) {
 	resType, err := arm.ParseResourceType(resourceOrType)
 	if err != nil {
 		return nil, err
 	}
 
-    v, _ := rs.m.LoadOrStore(resType.String(), newResourceBatch(resType.String()))
+    v, _ := rs.m.LoadOrStore(resType.String(), NewResourceBatch(resType.String()))
 
     rb, ok := v.(*ResourceBatch)
     if !ok {
         return nil, errors.New("error asserting to resource batch")
     }
-
 	// store the resources in the ResourceBatch
-    nf, err := rb.storeResources(rss)
+    nf, err := rb.StoreResources(rss)
 	if err != nil {
 		return nil, err
 	}
@@ -127,6 +125,7 @@ func (rs *ResourceStore) storeResources(resourceOrType string, rss []*armresourc
 }
 
 // StoreResources batches resources for storing by ResourceType.
+// TODO: I don't think the use of a set to track not found resources is correct.
 func (rs *ResourceStore) StoreResources(rss []*armresources.GenericResourceExpanded) (map[string]struct{}, error) {
 	// don't attempt to store empty resources
 	var errs []error
@@ -151,28 +150,8 @@ func (rs *ResourceStore) StoreResources(rss []*armresources.GenericResourceExpan
 			notFound = notFound.union(nf)
 		}
 	}
+
 	return notFound, errors.Join(errs...)
-}
-
-func (rs *ResourceStore) DeleteResources(resourceIDs []string) error {
-    /*
-    var errs []error
-	resID, err := arm.ParseResourceID(resourceIDs[0])
-	if err != nil {
-		return err
-	}
-	v, ok := rs.m.Load(resID.ResourceType.String())
-	if !ok {
-		return errors.New("resource type not found")
-	}
-	rb := v.(*ResourceBatch)
-
-	// notFound := rb.DeleteResources(resourceIDs)
-	if len(notFound) > 0 {
-		return errors.New("resources not found: " + strings.Join(notFound, ", "))
-	}
-    */
-	return nil
 }
 
 // Range is a typesafe wrapper for ranging over resource batches, which are keyed by ResourceType.

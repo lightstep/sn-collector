@@ -5,6 +5,7 @@ package azuresdk // import "github.com/open-telemetry/opentelemetry-collector-co
 
 import (
 	"context"
+	"sync"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
@@ -47,9 +48,9 @@ func ProcessSlice[T any](ctx context.Context, slice []T, process ProcessorFunc[T
 	return nil
 }
 
-// ProcessPager is a generic function to process AzureSDK's Pager. It generalizes handling of the AzureSDK patterns described
+// ProcessItems is a generic function to process items in AzureSDK's Pager. It generalizes handling of the AzureSDK patterns described
 // at https://learn.microsoft.com/en-us/azure/developer/go/azure-sdk-core-concepts.
-func ProcessPager[T, U any](ctx context.Context, pager *runtime.Pager[T], extract ExtractorFunc[T, U], process ProcessorFunc[U]) error {
+func ProcessItems[T, U any](ctx context.Context, pager *runtime.Pager[T], extract ExtractorFunc[T, U], process ProcessorFunc[U]) error {
 	for pager.More() {
 		page, err := pager.NextPage(ctx)
 		if err != nil {
@@ -58,6 +59,40 @@ func ProcessPager[T, U any](ctx context.Context, pager *runtime.Pager[T], extrac
 		if err := ProcessSlice(ctx, extract(page), process); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func ProcessPages[T any](ctxFunc func() context.Context, pager *runtime.Pager[T], process ProcessorFunc[T]) error {
+	for pager.More() {
+		page, err := pager.NextPage(ctxFunc())
+		if err != nil {
+			return err
+		}
+		if err := process(ctxFunc(), page); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func FanoutPages[T any](ctxFunc func() context.Context, pager *runtime.Pager[T], process ProcessorFunc[T]) error {
+	var errs []error
+	var	wg  sync.WaitGroup
+
+	defer wg.Wait()
+	for pager.More() {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			page, err := pager.NextPage(ctxFunc())
+			if err != nil {
+				errs = append(errs, err)
+			}
+			if err := process(ctxFunc(), page); err != nil {
+				errs = append(errs, err)
+			}
+		}()
 	}
 	return nil
 }

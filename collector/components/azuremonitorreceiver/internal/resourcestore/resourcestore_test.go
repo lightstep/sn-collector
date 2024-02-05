@@ -49,6 +49,7 @@ func TestResourceStore_StoreDefinitions(t *testing.T) {
 				{
 					ID:         to.Ptr("id1"),
 					Name:       toLocalizableString("name"),
+					Namespace:  to.Ptr("namespace1"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 			},
@@ -56,6 +57,7 @@ func TestResourceStore_StoreDefinitions(t *testing.T) {
 				"name": {
 					ID:         to.Ptr("id1"),
 					Name:       toLocalizableString("name"),
+					Namespace:  to.Ptr("namespace1"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 			},
@@ -67,11 +69,13 @@ func TestResourceStore_StoreDefinitions(t *testing.T) {
 				{
 					ID:         to.Ptr("id1"),
 					Name:       toLocalizableString("name"),
+					Namespace: to.Ptr("namespace1"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 				{
 					ID:         to.Ptr("id2"),
 					Name:       toLocalizableString("name2"),
+					Namespace: 	to.Ptr("namespace2"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 			},
@@ -79,11 +83,13 @@ func TestResourceStore_StoreDefinitions(t *testing.T) {
 				"name": {
 					ID:         to.Ptr("id1"),
 					Name:       toLocalizableString("name"),
+					Namespace:  to.Ptr("namespace1"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 				"name2": {
 					ID:         to.Ptr("id2"),
 					Name:       toLocalizableString("name2"),
+					Namespace:  to.Ptr("namespace2"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 			},
@@ -96,16 +102,19 @@ func TestResourceStore_StoreDefinitions(t *testing.T) {
 				{
 					ID:         to.Ptr("id1"),
 					Name:       toLocalizableString("name"),
+					Namespace:  to.Ptr("namespace1"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 				{
 					ID:         to.Ptr("id2"),
 					Name:       toLocalizableString("name2"),
+					Namespace:  to.Ptr("namespace2"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 				{
 					ID:         to.Ptr("id3"),
 					Name:       toLocalizableString("name3"),
+					Namespace:  to.Ptr("namespace3"),
 					ResourceID: to.Ptr(resourceID_B),
 				},
 			},
@@ -113,11 +122,13 @@ func TestResourceStore_StoreDefinitions(t *testing.T) {
 				"name": {
 					ID:         to.Ptr("id1"),
 					Name:       toLocalizableString("name"),
+					Namespace:  to.Ptr("namespace1"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 				"name2": {
 					ID:         to.Ptr("id2"),
 					Name:       toLocalizableString("name2"),
+					Namespace:  to.Ptr("namespace2"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 			},
@@ -131,21 +142,25 @@ func TestResourceStore_StoreDefinitions(t *testing.T) {
 				{
 					ID:         to.Ptr("id1"),
 					Name:       toLocalizableString("name"),
+					Namespace:  to.Ptr("namespace1"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 				{
 					ID:         to.Ptr("id2"),
 					Name:       toLocalizableString("name2"),
+					Namespace:  to.Ptr("namespace2"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 				{
 					ID:         to.Ptr("id3"),
 					Name:       toLocalizableString("name3"),
+					Namespace:  to.Ptr("namespace3"),
 					ResourceID: to.Ptr(resourceID_B),
 				},
 				{
 					ID:         to.Ptr("id4"),
 					Name:       toLocalizableString("name4"),
+					Namespace:  to.Ptr("namespace3"),
 					ResourceID: to.Ptr(resourceID_C),
 				},
 			},
@@ -169,26 +184,31 @@ func TestResourceStore_StoreDefinitions(t *testing.T) {
 				{
 					ID:         to.Ptr("id1"),
 					Name:       toLocalizableString("name"),
+					Namespace:  to.Ptr("namespace1"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 				{
 					ID:         to.Ptr("id2"),
 					Name:       toLocalizableString("name2"),
+					Namespace:  to.Ptr("namespace2"),
 					ResourceID: to.Ptr(resourceID_B),
 				},
 				{
 					ID:         to.Ptr("id3"),
 					Name:       toLocalizableString("name3"),
+					Namespace:  to.Ptr("namespace3"),
 					ResourceID: to.Ptr(resourceID_C),
 				},
 				{
 					ID:         to.Ptr("id4"),
 					Name:       toLocalizableString("name4"),
+					Namespace:  to.Ptr("namespace3"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 				{
 					ID:         to.Ptr("id5"),
 					Name:       toLocalizableString("name5"),
+					Namespace:  to.Ptr("namespace3"),
 					ResourceID: to.Ptr(resourceID_B),
 				},
 			},
@@ -196,11 +216,13 @@ func TestResourceStore_StoreDefinitions(t *testing.T) {
 				"name": {
 					ID:         to.Ptr("id1"),
 					Name:       toLocalizableString("name"),
+					Namespace:  to.Ptr("namespace1"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 				"name4": {
 					ID:         to.Ptr("id4"),
 					Name:       toLocalizableString("name4"),
+					Namespace:  to.Ptr("namespace3"),
 					ResourceID: to.Ptr(resourceID_A),
 				},
 			},
@@ -258,8 +280,8 @@ func TestResourceStore_StoreDefinitions(t *testing.T) {
 				t.Errorf("error parsing resource ID: %s", err)
 			}
 
-			defs, err := rs.getDefinitions(resID.String())
-			if err != nil {
+			defs, ok := rs.GetDefinitions(resID.ResourceType.String())
+			if !ok {
 				t.Errorf("error getting definitions: %s", err)
 			}
 

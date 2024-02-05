@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"go.opentelemetry.io/collector/receiver/scraperhelper"
 	"go.uber.org/multierr"
 
@@ -292,4 +294,16 @@ func (c Config) Validate() (err error) {
 	}
 
 	return
+}
+
+
+func (c *Config) getAzureCredential() (azcore.TokenCredential, error) {
+	switch c.Authentication {
+	case servicePrincipal:
+		return azidentity.NewClientSecretCredential(c.TenantID, c.ClientID, c.ClientSecret, nil)
+	case workloadIdentity:
+		return azidentity.NewWorkloadIdentityCredential(nil)
+	default:
+		return nil, fmt.Errorf("unknown authentication %v", c.Authentication)
+	}
 }

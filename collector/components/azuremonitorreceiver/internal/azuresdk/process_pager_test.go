@@ -182,12 +182,12 @@ var testCases = []struct {
 	},
 }
 
-// At this time the purpose of the test is to show use of the ProcessPager function for
+// At this time the purpose of the test is to show use of the ProcessItems function for
 // handling multiple pages with multiple items.
 // TODO: Add cases for error handling - potentially providing for injection of error handlers
 //
-//	in the ProcessPager function.
-func TestProcessPagerClient(t *testing.T) {
+//	in the ProcessItems function.
+func TestProcessItemsClient(t *testing.T) {
 	ctx := context.Background()
 	f := fakeServerFactory()
 	c, _ := armresources.NewClient(
@@ -214,13 +214,13 @@ func TestProcessPagerClient(t *testing.T) {
 				return nil
 			}
 
-			err := azuresdk.ProcessPager[armresources.ClientListResponse, *armresources.GenericResourceExpanded](ctx, pager, extract, process)
+			err := azuresdk.ProcessItems[armresources.ClientListResponse, *armresources.GenericResourceExpanded](ctx, pager, extract, process)
 			assert.NoError(t, err)
 		})
 	}
 }
 
-func TestProcessPagerByResourceGroupClient(t *testing.T) {
+func TestProcessItemsByResourceGroupClient(t *testing.T) {
 	ctx := context.Background()
 	f := fakeServerFactory()
 
@@ -249,7 +249,7 @@ func TestProcessPagerByResourceGroupClient(t *testing.T) {
 				return nil
 			}
 
-			err := azuresdk.ProcessPager[armresources.ClientListByResourceGroupResponse, *armresources.GenericResourceExpanded](ctx, pager, extract, process)
+			err := azuresdk.ProcessItems[armresources.ClientListByResourceGroupResponse, *armresources.GenericResourceExpanded](ctx, pager, extract, process)
 			assert.NoError(t, err)
 		})
 	}

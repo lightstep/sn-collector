@@ -31,8 +31,6 @@ func NewFactory() receiver.Factory {
 		receiver.WithMetrics(createMetricsReceiver, metadata.MetricsStability),
 		receiver.WithTraces(createTracesReceiver, metadata.TracesStability),
 		receiver.WithLogs(createLogsReceiver, metadata.LogsStability),
-		// receiver.WithLogs(createLogsReceiver, metadata.LogsStability)
-		// receiver.WithLogs(createLogsReceiver, component.StabilityLevelDevelopment)
 	)
 }
 
@@ -58,7 +56,7 @@ func createMetricsReceiver(_ context.Context, params receiver.CreateSettings, rC
 		return nil, errConfigNotAzureMonitor
 	}
 
-	azureScraper := newScraper(cfg, params)
+	azureScraper := newAzureScraper(cfg, params)
 	scraper, err := scraperhelper.NewScraper(metadata.Type, azureScraper.scrape, scraperhelper.WithStart(azureScraper.start))
 	if err != nil {
 		return nil, err
@@ -74,14 +72,3 @@ func createTracesReceiver(ctx context.Context, set receiver.CreateSettings, cfg 
 func createLogsReceiver(ctx context.Context, set receiver.CreateSettings, cfg component.Config, nextConsumer consumer.Logs) (receiver.Logs, error) {
 	return nil, errors.New("logs receiver not supported")
 }
-
-// type osQueryReceiver struct {
-// 	config       *Config
-// 	logger       *zap.Logger
-// 	client       *osquery.ExtensionManagerClient
-// 	logsConsumer consumer.Logs
-// }
-
-// func createLogsReceiver(context.Context, component.ReceiverCreateSettings, component.Receiver, consumer.Logs) (component.LogsReceiver, error) {
-// 	return nil, errors.New("logs receiver not supported")
-// }
