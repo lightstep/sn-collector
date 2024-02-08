@@ -1,0 +1,23 @@
+receivers:
+  azureeventhub:
+    connection: ${AZURE_EVENTHUB_CONNECTION}
+
+exporters:
+  logging:
+    loglevel: debug
+  otlp:
+    endpoint: ingest.lightstep.com:443
+    headers:
+        "lightstep-access-token": "${LS_ACCESS_TOKEN}"
+
+processors:
+  batch:
+
+service:
+  telemetry:
+    logs:
+  pipelines:
+    logs:
+      receivers: [azureeventhub]
+      processors: [batch]
+      exporters: [otlp]
