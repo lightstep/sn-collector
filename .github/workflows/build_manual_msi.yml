@@ -32,10 +32,16 @@ jobs:
           args: build --single-target --skip=validate --clean --snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: List dist directory
+        run: dir dist
+      - name: Create Windows Directory
+        run: mkdir windows
+      - name: List dist directory
+        run: dir dist\otelcol-servicenow_windows_amd64_v1
       - name: Copy Windows Collector Binary
-        run: cp dist/otelcol-servicenow_windows_amd64_v1/otelcol-servicenow.exe windows/otelcol-servicenow.exe
+        run: cp dist\otelcol-servicenow_windows_amd64_v1\otelcol-servicenow.exe windows\otelcol-servicenow.exe
       - name: Copy Example Config
-        run: cp collect/config/otelcol-windows-hostmetrics.yaml windows/config.yaml
+        run: cp collector\config\otelcol-windows-hostmetrics.yaml windows\config.yaml
       - name: Copy LICENSE
         run: cp LICENSE windows/LICENSE
       # HACK: Copy build directory to C drive to avoid this error, since there must be a relative path from the tempdir that go-msi uses
@@ -48,7 +54,7 @@ jobs:
       - name: Install Build Tools
         run: |
           curl -f -L -o go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.2.0/go-msi.exe
-          curl -f -L -o wix310-binaries.zip http://wixtoolset.org/downloads/v3.10.3.3007/wix310-binaries.zip
+          curl -f -L -o wix310-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix3104rtm/wix310-binaries.zip
           unzip wix310-binaries.zip
         working-directory: C:/build
       - name: "Build MSI from Tagged Release"
