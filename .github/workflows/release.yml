@@ -47,6 +47,14 @@ jobs:
         run: |
           echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
+      - name: Install cosign
+        run: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
+      - name: Build cosign key file
+        run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
+        shell: bash
+        env:
+          COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
+
       - uses: goreleaser/goreleaser-action@v5
         with:
           distribution: goreleaser
@@ -54,3 +62,4 @@ jobs:
           args: release --clean --skip=sign --timeout 2h
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}

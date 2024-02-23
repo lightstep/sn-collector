@@ -126,6 +126,15 @@ nfpms:
           owner: root
           group: root
 
+# https://goreleaser.com/customization/sign/
+# meant to be run from the GitHub Action release.yml
+signs:
+  - cmd: cosign
+    stdin: "{{ .Env.COSIGN_PWD }}"
+    args:
+      ["sign-blob", "--key=cosign.key", "--output=${signature}", "${artifact}"]
+    artifacts: all
+
 checksum:
   name_template: 'checksums.txt'
 
