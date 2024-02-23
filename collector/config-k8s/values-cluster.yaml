@@ -1,4 +1,7 @@
-# based on: https://docs.honeycomb.io/integrations/kubernetes/values-files/values-deployment.yaml
+#
+# Purpose: get cluster-level metrics and events from a cluster and send them to Cloud Observability.
+# Based on: https://docs.honeycomb.io/integrations/kubernetes/values-files/values-deployment.yaml
+#
 mode: deployment
 
 extraEnvs:
@@ -19,13 +22,13 @@ presets:
   kubernetesEvents:
     enabled: true
 
-# Uncomment to use the ServiceNow build of the OpenTelemetry collector
-#image:
-#  repository: ghcr.io/lightstep/sn-collector/sn-collector-experimental
-#  pullPolicy: Always
-#  tag: latest
-#command:
-#  name: otelcol-servicenow
+# Comment out the image and command sections to use the -contrib build of the collector
+image:
+  repository: ghcr.io/lightstep/sn-collector/sn-collector-experimental
+  pullPolicy: Always
+  tag: latest
+command:
+  name: otelcol-servicenow
 
 config:
   receivers:
@@ -33,7 +36,24 @@ config:
       collection_interval: 30s
     jaeger: null
     zipkin: null
+  
   processors:
+    resourcedetection/gcp:
+      detectors: [env, gcp]
+      timeout: 15s
+      override: false
+    resourcedetection/eks:
+      detectors: [env, eks]
+      timeout: 15s
+      override: false
+    resourcedetection/aks:
+      detectors: [env, aks]
+      timeout: 2s
+      override: false
+    batch:
+      send_batch_size: 1000
+      send_batch_max_size: 1500
+      timeout: 1s
     transform/events:
       error_mode: ignore
       log_statements:
@@ -60,28 +80,37 @@ config:
             - set(severity_number, SEVERITY_NUMBER_WARN) where attributes["type"] == "Warning"
 
   exporters:
-    # Uncomment if using the ServiceNow build of the OpenTelemetry collector
-    # servicenow/events:
-    #   instance_events_url: ${env:SERVICENOW_EVENTS_URL}
-    #   username: ${env:SERVICENOW_EVENTS_USERNAME}
-    #   password: ${env:SERVICENOW_EVENTS_PASSWORD}
+    # Comment out the servicenow/events exporter and
+    # remove from service pipeline if using the -contrib build of the collector
+    servicenow/events:
+      instance_events_url: ${env:SERVICENOW_EVENTS_URL}
+      username: ${env:SERVICENOW_EVENTS_USERNAME}
+      password: ${env:SERVICENOW_EVENTS_PASSWORD}
+
     otlp/cloudobs:
       endpoint: "ingest.lighstep.com:443"
       headers:
         "lightstep-access-token": "${env:CLOUDOBS_TOKEN}"
+      sending_queue:
+          enabled: true
+          num_consumers: 4
+          queue_size: 100
 
   service:
+    # This isn't the final pipeline configuration: the helm chart values
+    # will add additional components based on config options per the chart.
+    # Run helm with --dry-run to see the final collector configuration.
     pipelines:
       traces: null
       # Send metrics about the collector itself to Cloud Observability
       metrics/collector-monitoring:
         receivers: [ prometheus ]
         processors: [ batch ]
-        exporters:  [ otlp/cloudobs ]
+        exporters: [ otlp/cloudobs ]
       metrics:
         exporters: [ otlp/cloudobs ]
       logs:
-        processors: [ memory_limiter, transform/events, batch ]
+        processors: [ transform/events, batch ]
         exporters: [ otlp/cloudobs ]
 
 ports:

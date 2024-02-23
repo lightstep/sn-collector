@@ -69,3 +69,11 @@ The pod will deploy after a few seconds, to check status and for errors, run:
 ```sh
 kubectl get pods -n servicenow
 ```
+
+#### 3. Deploy ServiceNow Collector for Node and Workloads Monitoring
+
+Next, deploy collectors to each Kubernetes host to get workload metrics (via Kubelet).
+
+```sh
+helm upgrade otel-collector open-telemetry/opentelemetry-collector --install --namespace servicenow --values https://raw.githubusercontent.com/lightstep/sn-collector/main/collector/config-k8s/values-node.yaml
+```
