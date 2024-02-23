@@ -63,6 +63,7 @@ The following tables represent the supported components of the ServiceNow Collec
 | prometheus                                                       | [contrib][1]                 |
 | hostmetrics                                                      | [contrib][1]                 |
 | k8sevents                                                        | [contrib][1]                 |
+| k8sobjects                                                       | [contrib][1]                 |
 | k8scluster                                                       | [contrib][1]                 |
 | kubeletstats                                                     | [contrib][1]                 |
 | filelog                                                          | [contrib][1]                 |
