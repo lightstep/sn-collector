@@ -8,6 +8,9 @@ dist:
 exporters:
   - gomod:
       go.opentelemetry.io/collector/exporter/debugexporter v0.95.0
+  # Logging exporter is deprecated, but it's here to support the default OpenTelemetry Collector Helm chart as of 2/23/24
+  - gomod:
+      go.opentelemetry.io/collector/exporter/loggingexporter v0.95.0
   - gomod:
       go.opentelemetry.io/collector/exporter/otlpexporter v0.95.0
   - gomod:
@@ -21,6 +24,9 @@ processors:
     import: github.com/open-telemetry/otel-arrow/collector/processor/concurrentbatchprocessor
   - gomod:
       go.opentelemetry.io/collector/processor/batchprocessor v0.95.0
+  # We don't recommend memory limiter, but it's here to support the default OpenTelemetry Collector Helm chart as of 2/23/24
+  - gomod:
+      go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.95.0
   - gomod:
       github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.95.0
   - gomod:
@@ -49,6 +55,8 @@ receivers:
       github.com/open-telemetry/opentelemetry-collector-contrib/receiver/k8seventsreceiver v0.95.0 
   - gomod:
       github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.95.0 
+  - gomod:
+      github.com/open-telemetry/opentelemetry-collector-contrib/receiver/k8sobjectsreceiver v0.95.0 
   - gomod:
       github.com/open-telemetry/opentelemetry-collector-contrib/receiver/k8sclusterreceiver v0.95.0 
   - gomod:

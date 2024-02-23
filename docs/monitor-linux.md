@@ -11,7 +11,11 @@
 
 Gather system metrics from a Linux system using an installed software package. Use this for servers and hosts that **do not** have Docker or a container runtime.
 
-1. Download the appropriate package for your system and architecture from the Releases page of this repository.
+1. Download the appropriate package for your system and CPU architecture from the Releases page of this repository. 
+    - If you're not sure about what architecture your system is using, inspect the output of the `arch` command.
+    ```sh
+    arch
+    ```
 
 2. Install the downloaded package using the appropriate package manager for your Linux distribution.
   - RPM (RHEL, CentOS, Amazon Linux) package with `yum`:
