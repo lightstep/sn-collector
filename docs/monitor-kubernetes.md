@@ -1,46 +1,71 @@
 ## Monitor Kubernetes with the ServiceNow Collector
 
 | Kuberenetes Distibution                        | Support Status            | Architecture |
-| ---------------------------------------------- | ------------------ ------ | ------------ |
+| ---------------------------------------------- | ------------------------- | ------------ |
 | GKE (Google Cloud)                             | last three major versions | ARM, AMD     |
 | EKS (AWS)                                      | last three major versions | ARM, AMD     |
 | AKS (Azure)                                    | last three major versions | ARM, AMD     |
 | Kubernetes                                     | last three major versions | ARM, AMD     |
 
-* **Note:** We recommend Red Hat OpenShift customers should use the [Red Hat OpenTelemetry Distribution](https://docs.openshift.com/container-platform/4.12/otel/otel-using.html).
+* **Note:** We recommend Red Hat OpenShift customers use the [Red Hat OpenTelemetry Distribution](https://docs.openshift.com/container-platform/4.12/otel/otel-using.html).
 
 ### Deploy for Kubernetes monitoring with The OpenTelemetry Operator and Helm
 
-> This is an example only. We recommend using the official OpenTelemetry Operator Helm chart for deploying to production.
+#### Requirements
 
-All of the following assume you are installing the Operator in the `default` cluster namespace and you have `helm` v3 installed.
+* `helm` v3
+* Kubernetes cluster with local access via `kubectl`
+* ability to pull from the Docker image repository `ghcr.io/lightstep/sn-collector`
 
-1. Add OpenTelemetry Helm Charts.
-  - ```sh
-    helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
-    helm repo update
-    ```
+#### 1. Add OpenTelemetry Helm Repository
 
-2. Install charts. This installs the Operator with an automatically-generated self-signed certificate. For other options, see ["TLS Certificate Requirement"](https://github.com/open-telemetry/opentelemetry-helm-charts/tree/main/charts/opentelemetry-operator#tls-certificate-requirement) in OpenTelemetry Operator documentation.
-  - ```sh
-    helm install \
-        --set admissionWebhooks.certManager.enabled=false \
-        --set admissionWebhooks.certManager.autoGenerateCert=true \
-        opentelemetry-operator open-telemetry/opentelemetry-operator
-    ```
+We use the OpenTelemetry Helm charts to install the OpenTelemetry Operator. The Operator makes it easy to scale and configure collectors in Kubernetes.
 
-3. Set credentials for your ServiceNow instance and Cloud Observability.
-  - ```sh
-    export LS_TOKEN='<your-token>'
-    kubectl create secret generic ls-token-secret -n default --from-literal='LS_TOKEN=$LS_TOKEN'
+```sh
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+helm repo update
+```
 
-    # Set password for Event Manangement user on your instances
-    export MID_INSTANCE_EVENTS_PASSWORD='<your-mid-user-pw>'
-    kubectl create secret generic mid-instance-events-password -n default --from-literal='MID_INSTANCE_EVENTS_PASSWORD=$MID_INSTANCE_EVENTS_PASSWORD'
-    ```
+#### 2. Create a ServiceNow Namespace
 
-4. Deploy an OpenTelemetry Collector. The following uses the deployment example from the `collector/examples/` directory. Before applying you *must* edit the `k8s-deployment.yaml` file and set your username, instance URL, and cluster name. 
+This namespace is where the OpenTelemetry components will live in your cluster.
 
-  - ```sh
-    kubectl apply -f collector/examples/k8s-deployment.yaml
-    ```
+```sh
+kubectl create namespace servicenow
+```
+
+#### 3. Set credentials
+
+Paste your token carefully and escape it in single-quotes so special characters aren't interpreted by your shell.
+
+```sh
+export CLOUDOBS_TOKEN='<your-cloudobs-token>'
+kubectl create secret generic servicenow-cloudobs-token \
+    -n servicenow --from-literal='token=$LS_TOKEN'
+```
+
+Set username and password for Event Manangement.
+
+```sh
+export SERVICENOW_EVENTS_USERNAME='<your-mid-user>'
+kubectl create secret generic servicenow-events-user \
+-n servicenow --from-literal='USERNAME=$SERVICENOW_EVENTS_USERNAME'
+
+export SERVICENOW_EVENTS_PASSWORD='<your-mid-user-pw>'
+kubectl create secret generic servicenow-events-password \
+-n servicenow --from-literal='PASSWORD=$SERVICENOW_EVENTS_PASSWORD'
+```
+
+#### 3. Deploy ServiceNow Collector for Cluster Monitoring
+
+You're now ready to deploy a collector to your cluster to collect cluster-level metrics and events.
+
+```sh
+helm upgrade otel-collector-cluster open-telemetry/opentelemetry-collector --install --namespace servicenow --values https://raw.githubusercontent.com/lightstep/sn-collector/main/collector/config-k8s/values-cluster.yaml
+```
+
+The pod will deploy after a few seconds, to check status and for errors, run:
+
+```sh
+kubectl get pods -n servicenow
+```
