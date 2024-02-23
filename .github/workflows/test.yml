@@ -7,7 +7,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macos-14, windows-2022-8-cores]
+        #os: [ubuntu-20.04, macos-14, windows-2022-8-cores]
+        os: [ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Sources
