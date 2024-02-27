@@ -9,10 +9,10 @@ receivers:
         - job_name: otel-collector
           scrape_interval: 5s
           static_configs:
-          - labels:
-              collector_name: sn-collector
-            targets:
-              - 0.0.0.0:8888
+            - labels:
+                collector_name: sn-collector
+              targets:
+                - 0.0.0.0:8888
   hostmetrics:
     # needed to read host metrics from Docker cntainer
     # host path ostmust be mounted to the container
@@ -78,11 +78,11 @@ exporters:
   otlp/lightstep:
     endpoint: ingest.lightstep.com:443
     headers:
-      'lightstep-access-token': '${LS_TOKEN}'
+      "lightstep-access-token": "${LS_TOKEN}"
     sending_queue:
-        enabled: true
-        num_consumers: 4
-        queue_size: 100
+      enabled: true
+      num_consumers: 4
+      queue_size: 100
   # Send to HLA
   servicenow/logs:
     instance_logs_url: ${MID_INSTANCE_LOGS_URL}
@@ -119,6 +119,6 @@ service:
       processors: [batch, resourcedetection]
       exporters: [debug]
     metrics/host:
-       receivers: [hostmetrics]
-       processors: [batch, resourcedetection]
-       exporters: [debug]
+      receivers: [hostmetrics]
+      processors: [batch, resourcedetection]
+      exporters: [debug]

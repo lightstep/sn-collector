@@ -36,7 +36,7 @@ config:
       collection_interval: 30s
     jaeger: null
     zipkin: null
-  
+
   processors:
     resourcedetection/gcp:
       detectors: [env, gcp]
@@ -92,9 +92,9 @@ config:
       headers:
         "lightstep-access-token": "${env:CLOUDOBS_TOKEN}"
       sending_queue:
-          enabled: true
-          num_consumers: 4
-          queue_size: 100
+        enabled: true
+        num_consumers: 4
+        queue_size: 100
 
   service:
     # This isn't the final pipeline configuration: the helm chart values
@@ -104,14 +104,14 @@ config:
       traces: null
       # Send metrics about the collector itself to Cloud Observability
       metrics/collector-monitoring:
-        receivers: [ prometheus ]
-        processors: [ batch ]
-        exporters: [ otlp/cloudobs ]
+        receivers: [prometheus]
+        processors: [batch]
+        exporters: [otlp/cloudobs]
       metrics:
-        exporters: [ otlp/cloudobs ]
+        exporters: [otlp/cloudobs]
       logs:
-        processors: [ transform/events, batch ]
-        exporters: [ otlp/cloudobs ]
+        processors: [transform/events, batch]
+        exporters: [otlp/cloudobs]
 
 ports:
   jaeger-compact:
