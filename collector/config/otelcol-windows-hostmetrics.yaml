@@ -67,8 +67,8 @@ extensions:
     server:
       ws:
         endpoint: https://opamp.lightstep.com/v1/opamp
-      headers:
-        "Authorization": "Bearer ${LS_OPAMP_API_KEY}"
+        headers:
+          "Authorization": "Bearer ${LS_OPAMP_API_KEY}"
 service:
   pipelines:
     metrics/collector:

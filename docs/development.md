@@ -17,8 +17,11 @@ goreleaser release --snapshot --rm-dist
 
 ```sh
 cd collector/
+
+make install-tools # only needed the first build
+
 make
-goreleaser release --snapshot --rm-dist
+goreleaser release --skip-sign --snapshot --rm-dist
 ```
 
 To build for multiple platforms, this repository runs goreleaser automatically in a Github Action when a tag starting with `v` is pushed to the repossitory.
