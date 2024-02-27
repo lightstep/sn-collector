@@ -21,10 +21,10 @@ make
 goreleaser release --snapshot --rm-dist
 ```
 
-To build for multiple platforms, this repository runs goreleaser automatically in a Github Action when a tag starting with `v` is pushed to the repository.
+To build for multiple platforms, this repository runs goreleaser automatically in a Github Action when a tag starting with `v` is pushed to the repossitory.
 
 ```sh
-    git tag v0.0.1
-    git push origin --tags
-    # ... Github Action to build and released kicked off remotely
+git tag v0.0.1
+git push origin --tags
+# ... Github Action to build and released kicked off remotely
 ```

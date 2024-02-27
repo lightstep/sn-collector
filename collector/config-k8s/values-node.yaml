@@ -87,9 +87,9 @@ config:
       headers:
         "lightstep-access-token": "${env:CLOUDOBS_TOKEN}"
       sending_queue:
-          enabled: true
-          num_consumers: 4
-          queue_size: 100
+        enabled: true
+        num_consumers: 4
+        queue_size: 100
 
   service:
     # This isn't the final pipeline configuration: the helm chart values

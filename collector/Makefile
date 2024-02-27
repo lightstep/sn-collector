@@ -1,3 +1,6 @@
+ALLDOC := $(shell find .. \( -name "*.md" -o -name "*.yaml" \) \
+                                -type f | sort)
+
 .PHONY: all - Default target
 all: build
 

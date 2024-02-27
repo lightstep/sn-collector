@@ -1,0 +1,14 @@
+name: pr_checks
+on:
+  pull_request:
+
+jobs:
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: yaml-lint
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: collector/config/*.yaml collector/config-k8s/*.yaml
+          config_file: .yamllint.yml
