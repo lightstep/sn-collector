@@ -1,3 +1,6 @@
+ALLDOC := $(shell find .. \( -name "*.md" -o -name "*.yaml" \) \
+                                -type f | sort)
+
 .PHONY: all - Default target
 all: build
 
@@ -21,9 +24,14 @@ build-darwin:
 test:
 	cd components/servicenowexporter && go test -v ./...
 
+.PHONY: misspell
+misspell:
+	misspell -error $(ALLDOC)
+
 .PHONY: install-tools
 install-tools:
 	go install go.opentelemetry.io/collector/cmd/builder@v0.95.0
+	go install github.com/client9/misspell/cmd/misspell@v0.3.4
 
 .PHONY: docker - Build docker image
 docker:
