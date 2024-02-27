@@ -3,47 +3,12 @@ on:
   pull_request:
 
 jobs:
-  setup-tools:
-    runs-on: "ubuntu-20.04"
+  yamllint:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout Sources
-        uses: actions/checkout@v4
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v3
+      - name: yaml-lint
+        uses: ibiqlik/action-yamllint@v3
         with:
-          go-version: '~1.21.5'
-          check-latest: true
-      - name: Cache Tools
-        id: tool-cache
-        uses: actions/cache@v3
-        with:
-          path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./collector/Makefile') }}
-      - name: Install Tools
-        working-directory: ./collector
-        if: steps.tool-cache.outputs.cache-hit != 'true'
-        run: make install-tools
-
-  misspell:
-    runs-on: "ubuntu-20.04"
-    needs:
-      - setup-tools
-    steps:
-      - name: Checkout Sources
-        uses: actions/checkout@v4
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '~1.21.5'
-          check-latest: true
-      - name: Cache Tools
-        id: tool-cache
-        uses: actions/cache@v3
-        with:
-          path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./Makefile') }}
-      - name: Install Tools
-        if: steps.tool-cache.outputs.cache-hit != 'true'
-        run: make install-tools
-      - name: Check for Misspelled Words in Doc Files
-        run: make misspell
+          file_or_dir: collector/config/*.yaml collector/config-k8s/*.yaml
+          config_file: .yamllint.yml
