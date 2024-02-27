@@ -47,8 +47,11 @@ jobs:
         run: |
           echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
+      - uses: anchore/sbom-action/download-syft@v0.15.8
+
       - name: Install cosign
         run: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
+
       - name: Build cosign key file
         run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
         shell: bash

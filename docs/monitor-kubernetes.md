@@ -41,19 +41,21 @@ Paste your token carefully and escape it in single-quotes so special characters 
 ```sh
 export CLOUDOBS_TOKEN='<your-cloudobs-token>'
 kubectl create secret generic servicenow-cloudobs-token \
-    -n servicenow --from-literal='token=$LS_TOKEN'
+    -n servicenow --from-literal='token=$CLOUDOBS_TOKEN'
 ```
 
-Set username and password for Event Manangement.
-
+Set username for Event Manangement:
 ```sh
 export SERVICENOW_EVENTS_USERNAME='<your-mid-user>'
 kubectl create secret generic servicenow-events-user \
--n servicenow --from-literal='USERNAME=$SERVICENOW_EVENTS_USERNAME'
+    -n servicenow --from-literal='USERNAME=$SERVICENOW_EVENTS_USERNAME'
+```
 
+Set password for Event Manangement:
+```sh
 export SERVICENOW_EVENTS_PASSWORD='<your-mid-user-pw>'
 kubectl create secret generic servicenow-events-password \
--n servicenow --from-literal='PASSWORD=$SERVICENOW_EVENTS_PASSWORD'
+    -n servicenow --from-literal='PASSWORD=$SERVICENOW_EVENTS_PASSWORD'
 ```
 
 #### 3. Deploy ServiceNow Collector for Cluster Monitoring

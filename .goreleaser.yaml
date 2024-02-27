@@ -135,6 +135,11 @@ signs:
       ["sign-blob", "--key=cosign.key", "--output=${signature}", "${artifact}"]
     artifacts: all
 
+# https://goreleaser.com/customization/sbom/
+sboms:
+  - artifacts: archive
+    cmd: syft
+
 checksum:
   name_template: 'checksums.txt'
 
