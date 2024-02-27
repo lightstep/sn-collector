@@ -20,6 +20,14 @@ build-linux:
 build-darwin:
 	GOOS=darwin GOARCH=amd64 builder --config otelcol-builder.yaml
 
+.PHONY: validate-linux
+validate-linux:
+	./otelcol-servicenow/otelcol-servicenow validate --config ./config/otelcol-linux-hostmetrics.yaml
+
+.PHONY: validate-darwin
+validate-darwin:
+	./otelcol-servicenow/otelcol-servicenow validate --config ./config/otelcol-macos-hostmetrics.yaml
+
 .PHONY: test - Run tests for servicenowexporter
 test:
 	cd components/servicenowexporter && go test -v ./...

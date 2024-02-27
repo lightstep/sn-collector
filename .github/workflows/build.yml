@@ -24,6 +24,9 @@ jobs:
       - name: Build
         working-directory: ./collector
         run: make build-linux
+      - name: Validate
+        working-directory: ./collector
+        run: make validate-linux
 #   build_darwin:
 #     runs-on: macos-14
 #     steps:
