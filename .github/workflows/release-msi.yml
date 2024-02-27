@@ -1,0 +1,62 @@
+# Based on https://github.com/Bedrock-OSS/regolith/blob/b340a6f4bd208b265c3a0f6bbb59206ab8486545/.github/workflows/release.yml
+# https://dev.to/abdfnx/how-to-create-a-msi-file-for-go-program-je
+
+name: Release MSI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release-msi:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '~1.21.5'
+          check-latest: true
+      - name: Download latest *.zip release
+        uses: robinraju/release-downloader@v1.9
+        with:
+          latest: true
+          extract: true
+          fileName: otelcol-servicenow_*_windows_amd64.zip
+    #   - name: Validate collector release
+    #     run: |
+    #       ls -la
+    #       echo "Validating collector"
+    #       ./collector/otelcol-servicenow.exe validate --config ./config/otelcol-windows-hostmetrics.yaml
+      - run: ls -la
+        shell: bash
+      
+      - name: Cache Wix Toolset
+        id: cache-wix
+        uses: actions/cache@v3
+        with:
+          path: C:/wix-311
+          key: wix
+
+      - name: Set up Wix Toolset
+        if: steps.cache-wix.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p C:/wix
+          curl -o "C:/wix/wix311-binaries.zip" -OL https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311-binaries.zip
+          unzip C:/wix/wix311-binaries.zip -d "C:/wix"
+          echo "C:\wix" >> $GITHUB_PATH
+          go install github.com/stirante/go-msi@latest
+          ls -la
+          mkdir collector/windows/go-msi-tmp
+          cp otelcol-servicenow.exe collector/windows/otelcol-servicenow.exe
+          cp LICENSE collector/windows/LICENSE.txt
+        shell: bash
+    
+      - name: Build MSI
+        run: |
+          ls -la
+          cd collector/windows
+          ls -la
+          go-msi make --msi sn-collector-v0.0.1.msi --version v0.0.1 --src templates --out .\go-msi-tmp
+        shell: bash
