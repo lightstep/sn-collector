@@ -62,7 +62,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --clean --skip=sign --timeout 2h
+          args: release --clean --timeout 2h
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
