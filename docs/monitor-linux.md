@@ -7,11 +7,11 @@
 | Alpine                                         | last three major versions | ARM, AMD     |
 | Debian                                         | last three major versions | ARM, AMD     |
 
-### Install for for Linux server monitoring (no containers)
+### Package install for Linux server monitoring (no containers)
 
 Gather system metrics from a Linux system using an installed software package. Use this for servers and hosts that **do not** have Docker or a container runtime.
 
-1. Download the appropriate package for your system and CPU architecture from the Releases page of this repository. 
+1. Download the appropriate package for your system and CPU architecture from the [Releases](https://github.com/lightstep/sn-collector/releases) page of this repository. 
     - If you're not sure about what architecture your system is using, inspect the output of the `arch` command.
     ```sh
     arch
@@ -32,7 +32,7 @@ Gather system metrics from a Linux system using an installed software package. U
     ```
 3. Follow the post-install instructions on starting the collector service.
 
-### Install for for Linux host monitoring with Docker
+### Install for Linux host monitoring with Docker
 
 Gather host system metrics from a Linux using a Docker image.
 
@@ -41,7 +41,7 @@ Gather host system metrics from a Linux using a Docker image.
     docker pull ghcr.io/lightstep/sn-collector/sn-collector-experimental:latest
     ```
 
-2. Run the collector as a container, but mount the host filesystem to gather host metrics.
+2. Run the collector as a container, but mount the host filesystem to gather host metrics. Edit the configuration file as needed.
   - ```sh
     docker run --rm --name sn-collector-experimental \
       -v ./collector/config/otelcol-docker-hostmetrics.yaml:/etc/otelcol/config.yaml \

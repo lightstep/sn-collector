@@ -62,6 +62,7 @@ The following tables represent the supported components of the ServiceNow Collec
 | otlp                                                             | [contrib][1]                 | 
 | prometheus                                                       | [contrib][1]                 |
 | hostmetrics                                                      | [contrib][1]                 |
+| kafka                                                            | [contrib][1]                 |
 | k8sevents                                                        | [contrib][1]                 |
 | k8sobjects                                                       | [contrib][1]                 |
 | k8scluster                                                       | [contrib][1]                 |
@@ -82,7 +83,7 @@ The following tables represent the supported components of the ServiceNow Collec
 | resource                                                         | [contrib][2]         |
 | resourcedetection                                                | [contrib][2]         |
 | transform                                                        | [contrib][2]         |
-| `concurrentbatch`*                                               | pending contribution |
+| `concurrentbatch`*                                               | under development    |
 
 [2]: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor
 
@@ -91,7 +92,8 @@ The following tables represent the supported components of the ServiceNow Collec
 | Exporter                                                         | Status               |
 | ---------------------------------------------------------------- | -------------------- |
 | otlp                                                             | in core              |
-| `servicenow`*                                                    | pending contribution |
+| `servicenow`*                                                    | under development    |
+| arrow                                                            | under development    |
 | debug                                                            | in core              |
 | kafka                                                            | [contrib][3]         |
 
