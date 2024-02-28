@@ -70,3 +70,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
+
+  postrelease:
+    runs-on: ubuntu-20.04
+    needs: release
+    steps:
+      - name: Untar latest prerelease
+        uses: robinraju/release-downloader@v1.9
+        with:
+          latest: true
+          extract: true
+          preRelease: true
+          fileName: otelcol-servicenow_*_linux_amd64.tar.gz 
+      - name:  Validate otelcol-servicenow
+        run: ./otelcol-servicenow validate --config config/otelcol-linux-hostmetrics.yaml
