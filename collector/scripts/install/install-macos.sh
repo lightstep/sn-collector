@@ -363,10 +363,6 @@ set_ingest_token()
   fi
 
   INGEST_TOKEN="$ingest_token"
-
-  if [ -n "$INGEST_TOKEN" ] && [ -z "$INGEST_ENDPOINT" ]; then
-    error_exit "$LINENO" "An endpoint must be specified when providing an ingest token"
-  fi
 }
 
 # latest_version gets the tag of the latest release, without the v prefix.
@@ -375,6 +371,12 @@ latest_version()
   curl -sSL -H"Accept: application/vnd.github.v3+json" "https://api.github.com/repos/lightstep/sn-collector/releases/latest" | \
     grep "\"tag_name\"" | \
     sed -E 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
+}
+
+# set the access token, if one was specified
+set_access_token()
+{
+    sed -i "s/YOUR_TOKEN/$INGEST_TOKEN/g" /opt/sn-collector/config.yaml
 }
 
 # This will install the package by downloading & unpacking the tarball into the install directory
@@ -446,6 +448,11 @@ install_package()
   sed "s|\\[INSTALLDIR\\]|${INSTALL_DIR}/|g" "$INSTALL_DIR/install/$SERVICE_NAME.plist" | tee "/Library/LaunchDaemons/$SERVICE_NAME.plist" > /dev/null 2>&1 || error_exit "$LINENO" "Failed to install service file"
   launchctl load -w "/Library/LaunchDaemons/$SERVICE_NAME.plist" > /dev/null 2>&1 || error_exit "$LINENO" "Failed to load service file /Library/LaunchDaemons/$SERVICE_NAME.plist"
   succeeded
+
+  if [ -n "$INGEST_TOKEN" ]; then
+    info "Setting access token..."
+    set_access_token
+  fi
 
   info "Starting service..."
   launchctl start "$SERVICE_NAME" || error_exit "$LINENO" "Failed to start service file $SERVICE_NAME"

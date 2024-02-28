@@ -492,10 +492,6 @@ set_ingest_token()
   fi
 
   INGEST_TOKEN="$ingest_token"
-
-  if [ -n "$INGEST_TOKEN" ] && [ -z "$INGEST_ENDPOINT" ]; then
-    error_exit "$LINENO" "An endpoint must be specified when providing an ingest token"
-  fi
 }
 
 
@@ -505,6 +501,12 @@ latest_version()
   curl -sSL -H"Accept: application/vnd.github.v3+json" https://api.github.com/repos/lightstep/sn-collector/releases/latest | \
     grep "\"tag_name\"" | \
     sed -E 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
+}
+
+# set the access token, if one was specified
+set_access_token()
+{
+    sed -i "s/YOUR_TOKEN/$INGEST_TOKEN/g" /opt/sn-collector/config.yaml
 }
 
 # This will install the package by downloading the archived agent,
@@ -542,6 +544,11 @@ install_package()
 
   unpack_package || error_exit "$LINENO" "Failed to extract package"
   succeeded
+
+  if [ -n "$INGEST_TOKEN" ]; then
+    info "Setting access token..."
+    set_access_token
+  fi
 
   if [ "$(systemctl is-enabled sn-collector)" = "enabled" ]; then
     # The unit is already enabled; It may be running, too, if this was an upgrade.
@@ -586,7 +593,7 @@ display_results()
     info "Collector Config:       $(fg_cyan "/opt/sn-collector/config.yaml")$(reset)"
     info "Start Command:      $(fg_cyan "sudo systemctl start sn-collector")$(reset)"
     info "Stop Command:       $(fg_cyan "sudo systemctl stop sn-collector")$(reset)"
-    info "Logs Command:       $(fg_cyan "sudo tail -F /opt/sn-collector/log/collector.log")$(reset)"
+    info "Logs Command:       $(fg_cyan "sudo journalctl -u sn-collector -f")$(reset)"
     decrease_indent
 
     banner 'Support'

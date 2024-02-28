@@ -36,7 +36,7 @@ exporters:
   otlp/lightstep:
     endpoint: ingest.lightstep.com:443
     headers:
-      "lightstep-access-token": "${LS_TOKEN}"
+      "lightstep-access-token": "YOUR_TOKEN"
     sending_queue:
       enabled: true
       num_consumers: 4
@@ -78,4 +78,4 @@ service:
     metrics/host:
       receivers: [hostmetrics]
       processors: [batch, resourcedetection]
-      exporters: [debug]
+      exporters: [debug, otlp/lightstep]

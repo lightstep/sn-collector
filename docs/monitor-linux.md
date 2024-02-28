@@ -10,9 +10,10 @@
 
 This install approach automatically downloads dependencies and installs the collector as a service on Linux using a Debian or RPM package. Priviliged (root) access is needed.
 
-1. As `sudo`, run the following in your shell:
+1. As `sudo`, run the following in your shell. If you do not specify an optional token, edit the configuration file after install complete.
   - ```sh
-    sudo sh -c "$(curl -fsSlL https://github.com/lightstep/sn-collector/releases/latest/download/install-unix.sh)" install_unix.sh
+    export CLOUDOBS_TOKEN='your-cloudobs-access-token'
+    sudo sh -c "$(curl -fsSlL https://github.com/lightstep/sn-collector/releases/latest/download/install-unix.sh)" install_unix.sh --ingest-token $CLOUDOBS_TOKEN
     ```
 
 2. Review the collector configuration installed in `/opt/sn-collector/config.yaml`. The collector will automatically start running with the default configuration.
