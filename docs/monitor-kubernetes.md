@@ -7,7 +7,7 @@
 | AKS (Azure)                                    | last three major versions | ARM, AMD     |
 | Kubernetes                                     | last three major versions | ARM, AMD     |
 
-* **Note:** We recommend Red Hat OpenShift customers use the [Red Hat OpenTelemetry Distribution](https://docs.openshift.com/container-platform/4.12/otel/otel-using.html).
+* **Note:** We recommend Red Hat OpenShift customers use the [Red Hat OpenTelemetry Distribution](https://docs.openshift.com/container-platform/4.15/otel/otel-installing.html).
 
 ### Deploy for Kubernetes monitoring with The OpenTelemetry Operator and Helm
 

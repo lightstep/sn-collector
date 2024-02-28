@@ -25,6 +25,8 @@
     <string>[INSTALLDIR]</string>
     <key>ExitTimeOut</key>
     <integer>20</integer>
+    <key>StandardOutPath</key>
+    <string>/opt/sn-collector/collector.log</string>
     <key>StandardErrorPath</key>
     <string>/var/log/sn_collector.err</string>
 </dict>

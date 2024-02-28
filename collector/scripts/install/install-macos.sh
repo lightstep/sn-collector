@@ -12,7 +12,6 @@ DOWNLOAD_BASE="https://github.com/lightstep/sn-collector/releases/download"
 PREREQS="printf sed uname tr find grep"
 TMP_DIR="${TMPDIR:-"/tmp/"}sn-collector" # Allow this to be overriden by cannonical TMPDIR env var
 INSTALL_DIR="/opt/sn-collector"
-MANAGEMENT_YML_PATH="$INSTALL_DIR/manager.yaml"
 SCRIPT_NAME="$0"
 INDENT_WIDTH='  '
 indent=""
@@ -153,17 +152,11 @@ Usage:
       Example: '-b http://my.domain.org/servicenow-collector/binaries' will be used as the base of the download URL.
    
   $(fg_yellow '-e, --endpoint')
-      Defines the endpoint of an OpAMP compatible management server for this agent install.
-      This parameter may also be provided through the ENDPOINT environment variable.
-      
-      Specifying this will install the agent in a managed mode, as opposed to the
-      normal headless mode.
+    Defines the Cloud Observability ingest endpoint for telemetry
       
   $(fg_yellow '-i, --ingest-token')
-    Defines the secret key to be used when communicating with an OpAMP compatible server.
-    
-    This parameter may also be provided through the SECRET_KEY environment variable.
-    The '--endpoint' flag must be specified if this flag is specified.
+    Defines the token to be used when communicating with Cloud Observability
+
 EOF
   )
   info "$USAGE"
@@ -348,7 +341,7 @@ set_download_urls()
       base_url=$DOWNLOAD_BASE
     fi
 
-    collector_download_url="$base_url/v$version/otelcol-servicenow_v${version}_darwin_${os_arch}.tar.gz"
+    collector_download_url="$base_url/v$version/otelcol-servicenow_${version}_darwin_${os_arch}.tar.gz"
   else
     collector_download_url="$url"
   fi
@@ -370,18 +363,20 @@ set_ingest_token()
   fi
 
   INGEST_TOKEN="$ingest_token"
-
-  if [ -n "$INGEST_TOKEN" ] && [ -z "$INGEST_ENDPOINT" ]; then
-    error_exit "$LINENO" "An endpoint must be specified when providing an ingest token"
-  fi
 }
 
 # latest_version gets the tag of the latest release, without the v prefix.
 latest_version()
 {
-  curl -sSL -H"Accept: application/vnd.github.v3+json" \ https://api.github.com/repos/lightstep/sn-collector/releases/latest | \
+  curl -sSL -H"Accept: application/vnd.github.v3+json" "https://api.github.com/repos/lightstep/sn-collector/releases/latest" | \
     grep "\"tag_name\"" | \
     sed -E 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
+}
+
+# set the access token, if one was specified
+set_access_token()
+{
+    sed -i "s/YOUR_TOKEN/$INGEST_TOKEN/g" /opt/sn-collector/config.yaml
 }
 
 # This will install the package by downloading & unpacking the tarball into the install directory
@@ -441,11 +436,6 @@ install_package()
     succeeded
   fi
 
-  # TODO: If an endpoint was specified, we need to update the config
-  #if [ -n "$OPAMP_ENDPOINT" ]; then
-  #  create_manager_yml "$MANAGEMENT_YML_PATH"
-  #fi
-
   if [ -f "/Library/LaunchDaemons/$SERVICE_NAME.plist" ]; then
     # Existing service file, we should stop & unload first.
     info "Uninstalling existing service file..."
@@ -459,6 +449,11 @@ install_package()
   launchctl load -w "/Library/LaunchDaemons/$SERVICE_NAME.plist" > /dev/null 2>&1 || error_exit "$LINENO" "Failed to load service file /Library/LaunchDaemons/$SERVICE_NAME.plist"
   succeeded
 
+  if [ -n "$INGEST_TOKEN" ]; then
+    info "Setting access token..."
+    set_access_token
+  fi
+
   info "Starting service..."
   launchctl start "$SERVICE_NAME" || error_exit "$LINENO" "Failed to start service file $SERVICE_NAME"
   succeeded
@@ -470,20 +465,6 @@ install_package()
   success "ServiceNow Collector installation complete!"
   decrease_indent
 }
-
-# create_manager_yml creates the manager.yml at the specified path, containing opamp information.
-create_manager_yml()
-{
-  manager_yml_path="$1"
-  if [ ! -f "$manager_yml_path" ]; then
-    info "Creating manager yaml..."
-    command printf 'endpoint: "%s"\n' "$OPAMP_ENDPOINT" > "$manager_yml_path"
-    [ -n "$OPAMP_LABELS" ] && command printf 'labels: "%s"\n' "$OPAMP_LABELS" >> "$manager_yml_path"
-    [ -n "$OPAMP_SECRET_KEY" ] && command printf 'secret_key: "%s"\n' "$OPAMP_SECRET_KEY" >> "$manager_yml_path"
-    succeeded
-  fi
-}
-
 
 # This will display the results of an installation
 display_results()

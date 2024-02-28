@@ -4,7 +4,7 @@ on:
 
 jobs:
   yamllint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
       - name: yaml-lint
@@ -12,3 +12,13 @@ jobs:
         with:
           file_or_dir: collector/config/*.yaml collector/config-k8s/*.yaml
           config_file: .yamllint.yml
+  markdown-link-check:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@master
+      - uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          use-verbose-mode: 'yes'
+          folder-path: 'docs/'
+          max-depth: 2

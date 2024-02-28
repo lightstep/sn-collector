@@ -4,14 +4,30 @@
 | ---------------------------------------------- | ------------------------- | ------------ |
 | Red Hat Enterprise Linux (RHEL), Amazon Linux  | last three major versions | ARM, AMD     |
 | Ubuntu                                         | last three major versions | ARM, AMD     |
-| Alpine                                         | last three major versions | ARM, AMD     |
 | Debian                                         | last three major versions | ARM, AMD     |
 
-### Install for for Linux server monitoring (no containers)
+### Automated package install for Linux server monitoring
+
+This install approach automatically downloads dependencies and installs the collector as a service on Linux using a Debian or RPM package. Priviliged (root) access is needed.
+
+1. As `sudo`, run the following in your shell. If you do not specify an optional token, edit the configuration file after install complete.
+  - ```sh
+    export CLOUDOBS_TOKEN='your-cloudobs-access-token'
+    sudo sh -c "$(curl -fsSlL https://github.com/lightstep/sn-collector/releases/latest/download/install-unix.sh)" install_unix.sh --ingest-token $CLOUDOBS_TOKEN
+    ```
+
+2. Review the collector configuration installed in `/opt/sn-collector/config.yaml`. The collector will automatically start running with the default configuration.
+
+3. To *uninstall*, run:
+  - ```sh
+    sudo sh -c "$(curl -fsSlL https://github.com/lightstep/sn-collector/releases/latest/download/install-unix.sh)" install_unix.sh --uninstall
+    ```
+
+### Package install for Linux server monitoring
 
 Gather system metrics from a Linux system using an installed software package. Use this for servers and hosts that **do not** have Docker or a container runtime.
 
-1. Download the appropriate package for your system and CPU architecture from the Releases page of this repository. 
+1. Download the appropriate package for your system and CPU architecture from the [Releases](https://github.com/lightstep/sn-collector/releases) page of this repository. 
     - If you're not sure about what architecture your system is using, inspect the output of the `arch` command.
     ```sh
     arch
@@ -26,13 +42,10 @@ Gather system metrics from a Linux system using an installed software package. U
     ```sh
     sudo apt-get install -y otelcol-servicenow_version_linux_arch.deb 
     ```
-  - APK (Alpine Linux) package with `apk`:
-    ```sh
-    sudo apk add --allow-untrusted otelcol-servicenow_version_linux_arch.apk 
-    ```
+
 3. Follow the post-install instructions on starting the collector service.
 
-### Install for for Linux host monitoring with Docker
+### Install for Linux host monitoring with Docker
 
 Gather host system metrics from a Linux using a Docker image.
 
@@ -41,7 +54,7 @@ Gather host system metrics from a Linux using a Docker image.
     docker pull ghcr.io/lightstep/sn-collector/sn-collector-experimental:latest
     ```
 
-2. Run the collector as a container, but mount the host filesystem to gather host metrics.
+2. Run the collector as a container, but mount the host filesystem to gather host metrics. Edit the configuration file as needed.
   - ```sh
     docker run --rm --name sn-collector-experimental \
       -v ./collector/config/otelcol-docker-hostmetrics.yaml:/etc/otelcol/config.yaml \

@@ -5,7 +5,9 @@ name: Build
 on:
   pull_request:
     paths:
-      - collector/**
+      - '!docs/**'
+      - '!readme.md'
+
 jobs:
   build_linux:
     runs-on: ubuntu-20.04
