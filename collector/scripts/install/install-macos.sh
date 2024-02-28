@@ -348,7 +348,7 @@ set_download_urls()
       base_url=$DOWNLOAD_BASE
     fi
 
-    collector_download_url="$base_url/v$version/otelcol-servicenow_v${version}_darwin_${os_arch}.tar.gz"
+    collector_download_url="$base_url/v$version/otelcol-servicenow_${version}_darwin_${os_arch}.tar.gz"
   else
     collector_download_url="$url"
   fi
@@ -379,7 +379,7 @@ set_ingest_token()
 # latest_version gets the tag of the latest release, without the v prefix.
 latest_version()
 {
-  curl -sSL -H"Accept: application/vnd.github.v3+json" \ https://api.github.com/repos/lightstep/sn-collector/releases/latest | \
+  curl -sSL -H"Accept: application/vnd.github.v3+json" "https://api.github.com/repos/lightstep/sn-collector/releases/latest" | \
     grep "\"tag_name\"" | \
     sed -E 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
 }
