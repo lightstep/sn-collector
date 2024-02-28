@@ -26,10 +26,7 @@ Gather system metrics from a Linux system using an installed software package. U
     ```sh
     sudo apt-get install -y otelcol-servicenow_version_linux_arch.deb 
     ```
-  - APK (Alpine Linux) package with `apk`:
-    ```sh
-    sudo apk add --allow-untrusted otelcol-servicenow_version_linux_arch.apk 
-    ```
+
 3. Follow the post-install instructions on starting the collector service.
 
 ### Install for Linux host monitoring with Docker

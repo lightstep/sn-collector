@@ -100,7 +100,6 @@ nfpms:
     maintainer: ServiceNow Engineering <lightstep@servicenow.com>
     description: SerivceNow distribution of the OpenTelemetry Collector.
     formats:
-      - apk
       - deb
       - rpm
     bindir: /opt/sn-collector
@@ -138,9 +137,9 @@ signs:
     artifacts: all
 
 # https://goreleaser.com/customization/sbom/
-sboms:
-  - artifacts: archive
-    cmd: syft
+# sboms:
+#   - artifacts: archive
+#     cmd: syft
 
 checksum:
   name_template: 'checksums.txt'
