@@ -148,4 +148,5 @@ release:
   draft: false
   prerelease: "true"
   extra_files:
+    - glob: "./collector/scripts/install/install-unix.sh"
     - glob: "./collector/scripts/install/install-macos.sh"

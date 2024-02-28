@@ -4,10 +4,25 @@
 | ---------------------------------------------- | ------------------------- | ------------ |
 | Red Hat Enterprise Linux (RHEL), Amazon Linux  | last three major versions | ARM, AMD     |
 | Ubuntu                                         | last three major versions | ARM, AMD     |
-| Alpine                                         | last three major versions | ARM, AMD     |
 | Debian                                         | last three major versions | ARM, AMD     |
 
-### Package install for Linux server monitoring (no containers)
+### Automated package install for Linux server monitoring
+
+This install approach automatically downloads dependencies and installs the collector as a service on Linux using a Debian or RPM package. Priviliged (root) access is needed.
+
+1. As `sudo`, run the following in your shell:
+  - ```sh
+    sudo sh -c "$(curl -fsSlL https://github.com/lightstep/sn-collector/releases/latest/download/install-unix.sh)" install_unix.sh
+    ```
+
+2. Review the collector configuration installed in `/opt/sn-collector/config.yaml`. The collector will automatically start running with the default configuration.
+
+3. To *uninstall*, run:
+  - ```sh
+    sudo sh -c "$(curl -fsSlL https://github.com/lightstep/sn-collector/releases/latest/download/install-unix.sh)" install_unix.sh --uninstall
+    ```
+
+### Package install for Linux server monitoring
 
 Gather system metrics from a Linux system using an installed software package. Use this for servers and hosts that **do not** have Docker or a container runtime.
 
