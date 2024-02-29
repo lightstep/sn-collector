@@ -3,7 +3,7 @@ dist:
   description: ServiceNow-flavored OpenTelemetry Collector distro
   output_path: ./otelcol-servicenow
   otelcol_version: 0.95.0
-  version: 0.0.10
+  version: 0.0.11
 
 exporters:
   - gomod:
