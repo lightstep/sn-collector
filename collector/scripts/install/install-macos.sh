@@ -9,7 +9,7 @@ SERVICE_NAME="com.servicenow.collector"
 DOWNLOAD_BASE="https://github.com/lightstep/sn-collector/releases/download"
 
 # Script Constants
-PREREQS="printf sed uname tr find grep"
+PREREQS="printf sed uname tr find grep curl"
 TMP_DIR="${TMPDIR:-"/tmp/"}sn-collector" # Allow this to be overriden by cannonical TMPDIR env var
 INSTALL_DIR="/opt/sn-collector"
 SCRIPT_NAME="$0"
@@ -282,6 +282,18 @@ dependencies_check()
     error_exit "$LINENO" "The following dependencies are required by this script: [$FAILED_PREREQS]"
   fi
   succeeded
+}
+
+check_tls_connection()
+{
+  ingest_endpoint="ingest.lightstep.com"
+  banner "Checking TLS connection to $ingest_endpoint"
+  if echo | openssl s_client -connect $ingest_endpoint:443 > /dev/null; then
+    succeeded
+  else
+    failed
+    error_exit "$LINENO" "Could not establish a TLS connection to $ingest_endpoint"
+  fi
 }
 
 # This will set all installation variables
@@ -577,6 +589,7 @@ main()
 
   setup_installation
   install_package
+  check_tls_connection
   display_results
 }
 

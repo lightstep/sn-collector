@@ -230,6 +230,18 @@ failed()
   error "Failed!"
 }
 
+check_tls_connection()
+{
+  ingest_endpoint="ingest.lightstep.com"
+  banner "Checking TLS connection to $ingest_endpoint"
+  if echo | openssl s_client -connect $ingest_endpoint:443 > /dev/null; then
+    succeeded
+  else
+    failed
+    error_exit "$LINENO" "Could not establish a TLS connection to $ingest_endpoint"
+  fi
+}
+
 # This will set all installation variables
 # at the beginning of the script.
 setup_installation()
