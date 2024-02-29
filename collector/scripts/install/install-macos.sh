@@ -370,13 +370,15 @@ latest_version()
 {
   curl -sSL -H"Accept: application/vnd.github.v3+json" "https://api.github.com/repos/lightstep/sn-collector/releases/latest" | \
     grep "\"tag_name\"" | \
-    sed -E 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
+    sed -E 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9]+)",/\1/'
 }
 
 # set the access token, if one was specified
 set_access_token()
 {
-    sed -i "s/YOUR_TOKEN/$INGEST_TOKEN/g" /opt/sn-collector/config.yaml
+    # uses | as INGEST_TOKEN can contain a /
+    # sed is different on macOS vs Linux!
+    sed -i '' "s|YOUR_TOKEN|"$INGEST_TOKEN"|g" $INSTALL_DIR/config.yaml
 }
 
 # This will install the package by downloading & unpacking the tarball into the install directory
