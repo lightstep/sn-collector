@@ -109,7 +109,6 @@ The following tables represent the supported components of the ServiceNow Collec
 | ---------------------------------------------------------------- | --------------- |
 | healthcheck                                                      | [contrib][4]    |
 | opamp                                                            | [contrib][4]    |
-| pprof                                                            | [contrib][4]    |
 
 [4]: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/extension
 
@@ -117,7 +116,7 @@ The following tables represent the supported components of the ServiceNow Collec
 
 | Extension                                                        | Status          |
 | ---------------------------------------------------------------- | --------------- |
-| exceptionsconnector                                              | in [contrib][9] |
+| countconnector                                                   | in [contrib][9] |
 
 [9]: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/connector
 

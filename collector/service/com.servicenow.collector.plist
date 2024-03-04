@@ -28,6 +28,6 @@
     <key>StandardOutPath</key>
     <string>/opt/sn-collector/collector.log</string>
     <key>StandardErrorPath</key>
-    <string>/var/log/sn_collector.err</string>
+    <string>/opt/sn-collector/collector.log</string>
 </dict>
 </plist>
