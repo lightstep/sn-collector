@@ -9,7 +9,7 @@ extraEnvs:
     valueFrom:
       secretKeyRef:
         name: servicenow-cloudobs-token
-        key: token
+        key: CLOUDOBS_TOKEN
 
 # We only want one of these collectors - any more and we'd produce duplicate data
 replicaCount: 1
@@ -38,6 +38,11 @@ config:
     zipkin: null
 
   processors:
+    k8sattributes/cluster:
+      passthrough: false
+      extract:
+        metadata:
+          - k8s.cluster.uid
     resourcedetection/gcp:
       detectors: [env, gcp]
       timeout: 15s
@@ -88,13 +93,14 @@ config:
       password: ${env:SERVICENOW_EVENTS_PASSWORD}
 
     otlp/cloudobs:
-      endpoint: "ingest.lighstep.com:443"
+      endpoint: ingest.lightstep.com:443
       headers:
         "lightstep-access-token": "${env:CLOUDOBS_TOKEN}"
       sending_queue:
         enabled: true
         num_consumers: 4
         queue_size: 100
+      timeout: 30s
 
   service:
     # This isn't the final pipeline configuration: the helm chart values
@@ -105,13 +111,14 @@ config:
       # Send metrics about the collector itself to Cloud Observability
       metrics/collector-monitoring:
         receivers: [prometheus]
-        processors: [batch]
-        exporters: [otlp/cloudobs]
+        processors: [k8sattributes/cluster, batch]
+        exporters: [debug, otlp/cloudobs]
       metrics:
-        exporters: [otlp/cloudobs]
+        processors: [k8sattributes/cluster, batch]
+        exporters: [debug, otlp/cloudobs]
       logs:
-        processors: [transform/events, batch]
-        exporters: [otlp/cloudobs]
+        processors: [k8sattributes/cluster, transform/events, batch]
+        exporters: [debug, otlp/cloudobs]
 
 ports:
   jaeger-compact:

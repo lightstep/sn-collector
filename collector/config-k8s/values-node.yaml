@@ -21,7 +21,7 @@ extraEnvs:
     valueFrom:
       secretKeyRef:
         name: servicenow-cloudobs-token
-        key: token
+        key: CLOUDOBS_TOKEN
 
 presets:
   # enables the k8sattributesprocessor and adds it to the traces, metrics, and logs pipelines
@@ -83,13 +83,14 @@ config:
 
   exporters:
     otlp/cloudobs:
-      endpoint: "ingest.lighstep.com:443"
+      endpoint: ingest.lightstep.com:443
       headers:
         "lightstep-access-token": "${env:CLOUDOBS_TOKEN}"
       sending_queue:
         enabled: true
         num_consumers: 4
         queue_size: 100
+      timeout: 30s
 
   service:
     # This isn't the final pipeline configuration: the helm chart values
@@ -98,11 +99,11 @@ config:
     pipelines:
       traces:
         receivers: [otlp]
-        exporters: [otlp/cloudobs]
+        exporters: [debug, otlp/cloudobs]
       metrics:
-        exporters: [otlp/cloudobs]
+        exporters: [debug, otlp/cloudobs]
       logs:
-        exporters: [otlp/cloudobs]
+        exporters: [debug, otlp/cloudobs]
 
 ports:
   jaeger-compact:

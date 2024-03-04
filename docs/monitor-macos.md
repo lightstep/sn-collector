@@ -21,7 +21,7 @@ This install approach automatically downloads dependencies and installs the coll
 
 ### Manual install for macOS
 
-1. On the [Releases](https://github.com/lightstep/sn-collector/releases) page, download the appropriate collector `*.tar.gz` for `darwin` and your processor type. Apple Silicon processors use the `amd` binary.
+1. On the [Releases](https://github.com/lightstep/sn-collector/releases) page, download the appropriate collector `*.tar.gz` for `darwin` and your processor type. Apple Silicon processors use the `arm` binary.
 
 2. Extract the `*.tar.gz` archive.
 
