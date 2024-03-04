@@ -1,6 +1,6 @@
 #
 # Basic OpenTelemetry host metrics for macOS.
-# Validated with v0.95.0 on 2/21/24
+# Validated with v0.96.0 on 2/21/24
 #
 receivers:
   prometheus/self:
