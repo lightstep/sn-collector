@@ -22,7 +22,7 @@ jobs:
       - name: Install builder
         working-directory: ./collector
         run: |
-            go install go.opentelemetry.io/collector/cmd/builder@v0.95.0     
+            go install go.opentelemetry.io/collector/cmd/builder@v0.96.0     
       - name: Build
         working-directory: ./collector
         run: make build-linux
@@ -42,7 +42,7 @@ jobs:
 #       - name: Install builder
 #         working-directory: ./collector
 #         run: |
-#             go install go.opentelemetry.io/collector/cmd/builder@v0.95.0   
+#             go install go.opentelemetry.io/collector/cmd/builder@v0.96.0   
 #       - name: Build
 #         working-directory: ./collector
 #         run: make build-darwin
@@ -59,7 +59,7 @@ jobs:
 #       - name: Install builder
 #         working-directory: ./collector
 #         run: |
-#             go install go.opentelemetry.io/collector/cmd/builder@v0.95.0      
+#             go install go.opentelemetry.io/collector/cmd/builder@v0.96.0      
 #       - name: Build
 #         working-directory: ./collector
 #         run: make build-windows
