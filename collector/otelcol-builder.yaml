@@ -64,7 +64,7 @@ receivers:
 
 connectors:
   - gomod:
-      github.com/open-telemetry/opentelemetry-collector-contrib/connector/exceptionsconnector v0.96.0 
+      github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.96.0 
 
 extensions:
    - gomod:
