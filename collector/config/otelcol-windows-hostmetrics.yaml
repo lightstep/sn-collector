@@ -68,8 +68,9 @@ extensions:
       http:
         endpoint: https://opamp.lightstep.com/v1/opamp
         headers:
-          "Authorization": "Bearer ${LS_OPAMP_API_KEY}"
+          "Authorization": "Bearer YOUR_OPAMP_API_KEY"
 service:
+  extensions: [health_check, opamp]
   pipelines:
     metrics/collector:
       receivers: [prometheus/self]

@@ -17,9 +17,6 @@ receivers:
     collection_interval: 5s
     scrapers:
       # cpu and disk are only supported if build with CGO_ENABLED=1
-      # The ServiceNow collector goreleaser build does this, other builds may not.
-      cpu:
-      disk:
       load:
       processes:
       filesystem:
@@ -67,12 +64,13 @@ extensions:
   health_check:
   opamp:
     server:
-      ws:
+      http:
         endpoint: https://opamp.lightstep.com/v1/opamp
         headers:
-          "Authorization": "Bearer ${LS_OPAMP_API_KEY}"
+          "Authorization": "Bearer YOUR_OPAMP_API_KEY"
 
 service:
+  extensions: [health_check, opamp]
   pipelines:
     metrics/collector:
       receivers: [prometheus/self]
