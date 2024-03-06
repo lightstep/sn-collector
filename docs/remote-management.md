@@ -8,7 +8,7 @@ More information about the opAMP remote management protocol is available on the 
 
 ### Connecting to Cloud Observability
 
-By default, most default configuration files in release packages will be configured for opAMP. A ][special API Key](https://docs.lightstep.com/docs/create-and-manage-api-keys) is needed to connect to Cloud Observability's opAMP service.
+By default, most default configuration files in release packages will be configured for opAMP.  [special API Key](https://docs.lightstep.com/docs/create-and-manage-api-keys) is needed to connect to Cloud Observability's opAMP service.
 
 The extension is configured via the `opamp` key under `extensions`. Below is an example:
 
