@@ -15,8 +15,8 @@ receivers:
                 - 0.0.0.0:8888
   hostmetrics:
     collection_interval: 5s
-    # cpu and disk not supported by macOS
     scrapers:
+      # cpu and disk are only supported if build with CGO_ENABLED=1
       load:
       processes:
       filesystem:
@@ -64,12 +64,13 @@ extensions:
   health_check:
   opamp:
     server:
-      ws:
+      http:
         endpoint: https://opamp.lightstep.com/v1/opamp
         headers:
-          "Authorization": "Bearer ${LS_OPAMP_API_KEY}"
+          "Authorization": "Bearer YOUR_OPAMP_API_KEY"
 
 service:
+  extensions: [health_check, opamp]
   pipelines:
     metrics/collector:
       receivers: [prometheus/self]

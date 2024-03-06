@@ -168,6 +168,9 @@ Usage:
   $(fg_yellow '-i, --ingest-token')
     Defines the token to be used when communicating with Cloud Observability
 
+  $(fg_yellow '-o, --opamp-key')
+    Defines the API key to be used when communicating with Cloud Observability via opAMP
+
 EOF
   )
   info "$USAGE"
@@ -264,6 +267,7 @@ setup_installation()
     
     set_ingest_endpoint
     set_ingest_token
+    set_opamp_api_key
 
     success "Configuration complete!"
     decrease_indent
@@ -506,6 +510,14 @@ set_ingest_token()
   INGEST_TOKEN="$ingest_token"
 }
 
+set_opamp_api_key()
+{
+  if [ -z "$opamp_api_key" ] ; then
+    opamp_api_key=$OPAMP_API_KEY
+  fi
+
+  OPAMP_API_KEY="$opamp_api_key"
+}
 
 # latest_version gets the tag of the latest release, without the v prefix.
 latest_version()
@@ -516,10 +528,18 @@ latest_version()
 }
 
 # set the access token, if one was specified
-set_access_token()
+replace_access_token()
 {
     # uses | as INGEST_TOKEN can contain a /
     sed -i "s|YOUR_TOKEN|$INGEST_TOKEN|g" /opt/sn-collector/config.yaml
+}
+
+# replace the opamp api key , if one was specified
+replace_opamp_api_key()
+{
+    # uses | as INGEST_TOKEN can contain a /
+    # sed is different on macOS vs Linux!
+    sed -i '' "s|YOUR_OPAMP_API_KEY|"$OPAMP_API_KEY"|g" $INSTALL_DIR/config.yaml
 }
 
 # This will install the package by downloading the archived agent,
@@ -559,8 +579,13 @@ install_package()
   succeeded
 
   if [ -n "$INGEST_TOKEN" ]; then
-    info "Setting access token..."
-    set_access_token
+    info "Replacing access token in config..."
+    replace_access_token
+  fi
+
+  if [ -n "$OPAMP_API_KEY" ]; then
+    info "Replacing opAMP API key in config..."
+    replace_opamp_api_key
   fi
 
   if [ "$(systemctl is-enabled sn-collector)" = "enabled" ]; then
@@ -694,8 +719,8 @@ main()
           ingest_endpoint=$2 ; shift 2 ;;
         -i|--ingest-token)
           ingest_token=$2 ; shift 2 ;;
-        -c|--check-bp-url)
-          check_bp_url="true" ; shift 1 ;;
+        -o|--opamp-key)
+          opamp_api_key=$2 ; shift 2 ;;
         -b|--base-url)
           base_url=$2 ; shift 2 ;;
         -r|--uninstall)

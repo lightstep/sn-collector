@@ -23,7 +23,7 @@ data for [ServiceNow Cloud Observability](https://www.lightstep.com) and various
 | Windows server monitoring                      | 🟡          | 📒 [Install guide][12]   |
 | macOS monitoring                               | 🟡          | 📒 [Install guide][13]   |
 | Remote management (opAMP)                      | 🛠️          | 📒 [Community docs][15]  |
-| HTTP synthetic checks                          | 🛠️          | 📒 [Community docs][16]  |
+| HTTP synthetic checks                          | 🛠️          | 📒 [Install guide][16]  |
 
 [10]: /docs/monitor-kubernetes.md
 [11]: /docs/monitor-linux.md
@@ -31,7 +31,7 @@ data for [ServiceNow Cloud Observability](https://www.lightstep.com) and various
 [13]: /docs/monitor-macos.md
 [14]: https://opentelemetry.io/docs/collector/
 [15]: https://opentelemetry.io/docs/specs/opamp/
-[16]: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/httpcheckreceiver
+[16]: /docs/remote-management.md
 
 ### Supported ServiceNow destinations
 
