@@ -9,7 +9,8 @@ This install approach automatically downloads dependencies and installs the coll
 1. As `sudo`, run the following in your shell. If you do not specify an optional token, edit the configuration file after install complete.
   - ```sh
     export CLOUDOBS_TOKEN='your-cloudobs-access-token'
-    sudo sh -c "$(curl -fsSlL https://github.com/lightstep/sn-collector/releases/latest/download/install-macos.sh)" install_macos.sh --ingest-token $CLOUDOBS_TOKEN
+    export OPAMP_KEY='your-opamp-api-key'
+    sudo sh -c "$(curl -fsSlL https://github.com/lightstep/sn-collector/releases/latest/download/install-macos.sh)" install_macos.sh --ingest-token $CLOUDOBS_TOKEN --opamp-key $OPAMP_KEY
     ```
 
 2. Review the collector configuration installed in `/opt/sn-collector/config.yaml`. The collector will automatically start running with the default configuration.
