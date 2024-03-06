@@ -17,20 +17,20 @@ data for [ServiceNow Cloud Observability](https://www.lightstep.com) and various
 
 | Feature                                        | Status     | Docs                     |
 | ---------------------------------------------- | ---------- | ------------------------ |
-| Telemetry routing and processing ("gateway")   | 🟢          | 📔 [Community docs][14]  |
+| Telemetry routing and processing ("gateway")   | 🟢          | 📘 [Community docs][14]  |
 | Kubernetes cluster and workload monitoring     | 🟢          | 📒 [Install guide][10]   |
 | Linux server monitoring                        | 🟡          | 📒 [Install guide][11]   |
 | Windows server monitoring                      | 🟡          | 📒 [Install guide][12]   |
 | macOS monitoring                               | 🟡          | 📒 [Install guide][13]   |
-| Remote management (opAMP)                      | 🛠️          | 📒 [Community docs][15]  |
-| HTTP synthetic checks                          | 🛠️          | 📒 [Install guide][16]  |
+| Remote management (opAMP)                      | 🛠️          | 📒 [Install guide][16]|
+| HTTP synthetic checks                          | 🛠️          | 📘 [Community docs][15]  |
 
 [10]: /docs/monitor-kubernetes.md
 [11]: /docs/monitor-linux.md
 [12]: /docs/monitor-windows.md
 [13]: /docs/monitor-macos.md
 [14]: https://opentelemetry.io/docs/collector/
-[15]: https://opentelemetry.io/docs/specs/opamp/
+[15]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/httpcheckreceiver/documentation.md
 [16]: /docs/remote-management.md
 
 ### Supported ServiceNow destinations
