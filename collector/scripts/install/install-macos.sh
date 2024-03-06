@@ -515,7 +515,7 @@ display_results()
     info "Collector Config:       $(fg_cyan "$INSTALL_DIR/config.yaml")$(reset)"
     info "Start Command:      $(fg_cyan "sudo launchctl load /Library/LaunchDaemons/$SERVICE_NAME.plist")$(reset)"
     info "Stop Command:       $(fg_cyan "sudo launchctl unload /Library/LaunchDaemons/$SERVICE_NAME.plist")$(reset)"
-    info "Logs Command:       $(fg_cyan "sudo tail -F $INSTALL_DIR/log/collector.log")$(reset)"
+    info "Logs Command:       $(fg_cyan "sudo tail -F $INSTALL_DIR/collector.log")$(reset)"
     decrease_indent
 
     banner 'Support'
