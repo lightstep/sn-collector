@@ -44,14 +44,14 @@ kubectl create secret generic servicenow-cloudobs-token \
     -n servicenow --from-literal=token=$CLOUDOBS_TOKEN
 ```
 
-Set username for Event Manangement:
+(__Optional__) Set username for Event Manangement:
 ```sh
 export SERVICENOW_EVENTS_USERNAME='<your-mid-user>'
 kubectl create secret generic servicenow-events-user \
     -n servicenow --from-literal='USERNAME=$SERVICENOW_EVENTS_USERNAME'
 ```
 
-Set password for Event Manangement:
+(__Optional__) Set password for Event Manangement:
 ```sh
 export SERVICENOW_EVENTS_PASSWORD='<your-mid-user-pw>'
 kubectl create secret generic servicenow-events-password \
