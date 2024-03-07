@@ -38,12 +38,10 @@ kubectl create namespace servicenow
 
 #### 3. Set credentials
 
-Paste your token carefully and **escape it in single-quotes** so special characters aren't interpreted by your shell.
-
 ```sh
 export CLOUDOBS_TOKEN='<your-cloudobs-token>'
 kubectl create secret generic servicenow-cloudobs-token \
-    -n servicenow --from-literal='CLOUDOBS_TOKEN=$CLOUDOBS_TOKEN'
+    -n servicenow --from-literal=token=$CLOUDOBS_TOKEN
 ```
 
 Set username for Event Manangement:
