@@ -22,6 +22,31 @@ extraEnvs:
       secretKeyRef:
         name: servicenow-cloudobs-token
         key: token
+  - name: K8S_NODE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+  - name: K8S_NODE_IP
+    valueFrom:
+      fieldRef:
+        fieldPath: status.hostIP
+  - name: K8S_NAMESPACE
+    valueFrom:
+      fieldRef:
+        apiVersion: v1
+        fieldPath: metadata.namespace
+  - name: K8S_POD_NAME
+    valueFrom:
+      fieldRef:
+        apiVersion: v1
+        fieldPath: metadata.name
+  - name: K8S_POD_UID
+    valueFrom:
+      fieldRef:
+        apiVersion: v1
+        fieldPath: metadata.uid
+  - name: OTEL_RESOURCE_ATTRIBUTES
+    value: "k8s.node.name=$(K8S_NODE_NAME)"
 
 presets:
   # enables the k8sattributesprocessor and adds it to the traces, metrics, and logs pipelines
@@ -37,8 +62,8 @@ presets:
     enabled: true
   # enables pod logs
   logsCollection:
-    enabled: false
-    includeCollectorLogs: true
+    enabled: true
+    includeCollectorLogs: false
 
 # Comment out the image and command sections to use the -contrib build of the collector
 image:
@@ -81,6 +106,10 @@ config:
       override: false
     resourcedetection/aks:
       detectors: [env, aks]
+      timeout: 2s
+      override: false
+    resourcedetection/env:
+      detectors: [env]
       timeout: 2s
       override: false
     k8sattributes:
@@ -185,14 +214,20 @@ config:
     # This isn't the final pipeline configuration: the helm chart values
     # will add additional components based on config options per the chart.
     # Run helm with --dry-run to see the final collector configuration.
+    extensions: [health_check]
     pipelines:
       traces:
         receivers: [otlp]
+        processors: [k8sattributes, concurrentbatch]
         exporters: [debug, otlp/cloudobs]
       metrics:
+        receivers: [otlp, prometheus, hostmetrics, kubeletstats]
+        processors: [k8sattributes, concurrentbatch]
         exporters: [debug, otlp/cloudobs]
       logs:
-        exporters: [debug, otlp/cloudobs]
+        receivers: [otlp, filelog]
+        processors: [k8sattributes, concurrentbatch]
+        exporters: [debug, otelarrow/cloudobs]
 
 ports:
   jaeger-compact:
