@@ -97,7 +97,7 @@ The following tables represent the supported components of the ServiceNow Collec
 | ---------------------------------------------------------------- | -------------------- |
 | otlp                                                             | in core              |
 | `servicenow`*                                                    | under development    |
-| arrow                                                            | under development    |
+| `arrow`*                                                         | under development    |
 | debug                                                            | in core              |
 | kafka                                                            | [contrib][3]         |
 

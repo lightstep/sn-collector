@@ -3,7 +3,7 @@ dist:
   description: ServiceNow-flavored OpenTelemetry Collector distro
   output_path: ./otelcol-servicenow
   otelcol_version: 0.96.0
-  version: 0.0.12
+  version: 0.0.13
 
 exporters:
   - gomod:
@@ -18,9 +18,11 @@ exporters:
   - gomod: "github.com/lightstep/sn-collector/collector/servicenowexporter v0.0.1"
     name: "servicenowexporter"
     path: "./components/servicenowexporter"
+  - gomod: github.com/open-telemetry/otel-arrow/collector v0.18.0
+    import: github.com/open-telemetry/otel-arrow/collector/exporter/otelarrowexporter
 
 processors:
-  - gomod: github.com/open-telemetry/otel-arrow/collector v0.17.0
+  - gomod: github.com/open-telemetry/otel-arrow/collector v0.18.0
     import: github.com/open-telemetry/otel-arrow/collector/processor/concurrentbatchprocessor
   - gomod:
       go.opentelemetry.io/collector/processor/batchprocessor v0.96.0
