@@ -113,6 +113,10 @@ extensions:
           "Authorization": "Bearer YOUR_OPAMP_API_KEY"
 
 service:
+  telemetry:
+    metrics:
+      level: detailed
+      address: 0.0.0.0:8888
   extensions: [health_check, opamp]
   pipelines:
     metrics/collector:

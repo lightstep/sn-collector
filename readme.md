@@ -18,7 +18,7 @@ data for [ServiceNow Cloud Observability](https://www.lightstep.com) and various
 | Feature                                        | Status     | Docs                     |
 | ---------------------------------------------- | ---------- | ------------------------ |
 | Telemetry routing and processing ("gateway")   | 🟢          | 📘 [Community docs][14]  |
-| Kubernetes cluster and workload monitoring     | 🟢          | 📒 [Install guide][10]   |
+| Kubernetes cluster and workload monitoring     | 🛠️          | 📒 [Install guide][10]   |
 | Linux server monitoring                        | 🟡          | 📒 [Install guide][11]   |
 | Windows server monitoring                      | 🟡          | 📒 [Install guide][12]   |
 | macOS monitoring                               | 🟡          | 📒 [Install guide][13]   |

@@ -21,7 +21,32 @@ extraEnvs:
     valueFrom:
       secretKeyRef:
         name: servicenow-cloudobs-token
-        key: CLOUDOBS_TOKEN
+        key: token
+  - name: K8S_NODE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+  - name: K8S_NODE_IP
+    valueFrom:
+      fieldRef:
+        fieldPath: status.hostIP
+  - name: K8S_NAMESPACE
+    valueFrom:
+      fieldRef:
+        apiVersion: v1
+        fieldPath: metadata.namespace
+  - name: K8S_POD_NAME
+    valueFrom:
+      fieldRef:
+        apiVersion: v1
+        fieldPath: metadata.name
+  - name: K8S_POD_UID
+    valueFrom:
+      fieldRef:
+        apiVersion: v1
+        fieldPath: metadata.uid
+  - name: OTEL_RESOURCE_ATTRIBUTES
+    value: "k8s.node.name=$(K8S_NODE_NAME)"
 
 presets:
   # enables the k8sattributesprocessor and adds it to the traces, metrics, and logs pipelines
@@ -37,8 +62,16 @@ presets:
     enabled: true
   # enables pod logs
   logsCollection:
-    enabled: false
-    includeCollectorLogs: true
+    enabled: true
+    includeCollectorLogs: false
+
+# Comment out the image and command sections to use the -contrib build of the collector
+image:
+  repository: ghcr.io/lightstep/sn-collector/sn-collector-experimental
+  pullPolicy: Always
+  tag: latest
+command:
+  name: otelcol-servicenow
 
 config:
   receivers:
@@ -75,13 +108,98 @@ config:
       detectors: [env, aks]
       timeout: 2s
       override: false
-
+    resourcedetection/env:
+      detectors: [env]
+      timeout: 2s
+      override: false
+    k8sattributes:
+      extract:
+        labels:
+          - from: pod
+            key: app.kubernetes.io/name
+            tag_name: service.name
+          - from: pod
+            key: k8s-app
+            tag_name: service.name
+          - from: pod
+            key: app.kubernetes.io/instance
+            tag_name: k8s.app.instance
+          - from: pod
+            key: app.kubernetes.io/version
+            tag_name: service.version
+          - from: pod
+            key: app.kubernetes.io/component
+            tag_name: k8s.app.component
+        metadata:
+          - k8s.namespace.name
+          - k8s.pod.name
+          - k8s.pod.uid
+          - k8s.node.name
+          - k8s.pod.start_time
+          - k8s.deployment.name
+          - k8s.replicaset.name
+          - k8s.replicaset.uid
+          - k8s.daemonset.name
+          - k8s.daemonset.uid
+          - k8s.job.name
+          - k8s.job.uid
+          - k8s.container.name
+          - k8s.cronjob.name
+          - k8s.statefulset.name
+          - k8s.statefulset.uid
+          - container.image.tag
+          - container.image.name
+          - k8s.cluster.uid
+      filter:
+        node_from_env_var: K8S_NODE_NAME
+      passthrough: false
+      pod_association:
+        - sources:
+            - from: resource_attribute
+              name: k8s.pod.uid
+        - sources:
+            - from: resource_attribute
+              name: k8s.pod.name
+            - from: resource_attribute
+              name: k8s.namespace.name
+            - from: resource_attribute
+              name: k8s.node.name
+        - sources:
+            - from: resource_attribute
+              name: k8s.pod.ip
+        - sources:
+            - from: resource_attribute
+              name: k8s.pod.name
+            - from: resource_attribute
+              name: k8s.namespace.name
+        - sources:
+            - from: connection
+    concurrentbatch:
+      send_batch_max_size: 1500
+      send_batch_size: 1000
+      timeout: 1s
+      max_in_flight_size_mib: 128
     batch:
       send_batch_size: 1000
       send_batch_max_size: 1500
       timeout: 1s
 
   exporters:
+    # Send to Cloud Observability via Arrow
+    otelarrow/cloudobs:
+      endpoint: ingest.lightstep.com:443
+      headers:
+        "lightstep-access-token": "${env:CLOUDOBS_TOKEN}"
+      arrow:
+        disabled: false
+        max_stream_lifetime: 2m
+        num_streams: 6
+      timeout: 30s
+      retry_on_failure:
+        enabled: false
+      sending_queue:
+        enabled: false
+    # Send to Cloud Observability via GRPC
     otlp/cloudobs:
       endpoint: ingest.lightstep.com:443
       headers:
@@ -96,14 +214,20 @@ config:
     # This isn't the final pipeline configuration: the helm chart values
     # will add additional components based on config options per the chart.
     # Run helm with --dry-run to see the final collector configuration.
+    extensions: [health_check]
     pipelines:
       traces:
         receivers: [otlp]
+        processors: [k8sattributes, concurrentbatch]
         exporters: [debug, otlp/cloudobs]
       metrics:
+        receivers: [otlp, prometheus, hostmetrics, kubeletstats]
+        processors: [k8sattributes, concurrentbatch]
         exporters: [debug, otlp/cloudobs]
       logs:
-        exporters: [debug, otlp/cloudobs]
+        receivers: [otlp, filelog]
+        processors: [k8sattributes, concurrentbatch]
+        exporters: [debug, otelarrow/cloudobs]
 
 ports:
   jaeger-compact:

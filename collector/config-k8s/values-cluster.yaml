@@ -9,7 +9,7 @@ extraEnvs:
     valueFrom:
       secretKeyRef:
         name: servicenow-cloudobs-token
-        key: CLOUDOBS_TOKEN
+        key: token
 
 # We only want one of these collectors - any more and we'd produce duplicate data
 replicaCount: 1
@@ -38,11 +38,71 @@ config:
     zipkin: null
 
   processors:
-    k8sattributes/cluster:
-      passthrough: false
+    concurrentbatch:
+      send_batch_max_size: 1500
+      send_batch_size: 1000
+      timeout: 1s
+      max_in_flight_size_mib: 128
+    k8sattributes:
       extract:
+        labels:
+          - from: pod
+            key: app.kubernetes.io/name
+            tag_name: service.name
+          - from: pod
+            key: k8s-app
+            tag_name: service.name
+          - from: pod
+            key: app.kubernetes.io/instance
+            tag_name: k8s.app.instance
+          - from: pod
+            key: app.kubernetes.io/version
+            tag_name: service.version
+          - from: pod
+            key: app.kubernetes.io/component
+            tag_name: k8s.app.component
         metadata:
+          - k8s.namespace.name
+          - k8s.pod.name
+          - k8s.pod.uid
+          - k8s.node.name
+          - k8s.pod.start_time
+          - k8s.deployment.name
+          - k8s.replicaset.name
+          - k8s.replicaset.uid
+          - k8s.daemonset.name
+          - k8s.daemonset.uid
+          - k8s.job.name
+          - k8s.job.uid
+          - k8s.container.name
+          - k8s.cronjob.name
+          - k8s.statefulset.name
+          - k8s.statefulset.uid
+          - container.image.tag
+          - container.image.name
           - k8s.cluster.uid
+      passthrough: false
+      pod_association:
+        - sources:
+            - from: resource_attribute
+              name: k8s.pod.uid
+        - sources:
+            - from: resource_attribute
+              name: k8s.pod.name
+            - from: resource_attribute
+              name: k8s.namespace.name
+            - from: resource_attribute
+              name: k8s.node.name
+        - sources:
+            - from: resource_attribute
+              name: k8s.pod.ip
+        - sources:
+            - from: resource_attribute
+              name: k8s.pod.name
+            - from: resource_attribute
+              name: k8s.namespace.name
+        - sources:
+            - from: connection
     resourcedetection/gcp:
       detectors: [env, gcp]
       timeout: 15s
@@ -91,7 +151,21 @@ config:
       instance_events_url: ${env:SERVICENOW_EVENTS_URL}
       username: ${env:SERVICENOW_EVENTS_USERNAME}
       password: ${env:SERVICENOW_EVENTS_PASSWORD}
-
+    # Send to Cloud Observability via Arrow
+    otelarrow/cloudobs:
+      endpoint: ingest.lightstep.com:443
+      headers:
+        "lightstep-access-token": "${env:CLOUDOBS_TOKEN}"
+      arrow:
+        disabled: false
+        max_stream_lifetime: 2m
+        num_streams: 6
+      timeout: 30s
+      retry_on_failure:
+        enabled: false
+      sending_queue:
+        enabled: false
+    # Send to Cloud Observability via gRPC
     otlp/cloudobs:
       endpoint: ingest.lightstep.com:443
       headers:
@@ -111,13 +185,13 @@ config:
       # Send metrics about the collector itself to Cloud Observability
       metrics/collector-monitoring:
         receivers: [prometheus]
-        processors: [k8sattributes/cluster, batch]
+        processors: [k8sattributes, concurrentbatch]
         exporters: [debug, otlp/cloudobs]
       metrics:
-        processors: [k8sattributes/cluster, batch]
+        processors: [k8sattributes, concurrentbatch]
         exporters: [debug, otlp/cloudobs]
       logs:
-        processors: [k8sattributes/cluster, transform/events, batch]
+        processors: [k8sattributes, transform/events, concurrentbatch]
         exporters: [debug, otlp/cloudobs]
 
 ports:
