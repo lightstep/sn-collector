@@ -6,7 +6,7 @@ The last three macOS versions are supported on both Intel (AMD64) and Apple Sili
 
 This install approach automatically downloads dependencies and installs the collector as a service on macOS. Priviliged (root) access is needed.
 
-1. As `sudo`, run the following in your shell. If you do not specify an optional token, edit the configuration file after install complete.
+1. As `sudo`, run the following in your shell. If you do not specify an optional token, edit the configuration file after install completes. If you set an OpAMP key, [which is a project-scoped API Key](https://docs.lightstep.com/docs/create-and-manage-api-keys), certain collector remote management features will be enabled.
   - ```sh
     export CLOUDOBS_TOKEN='your-cloudobs-access-token'
     export OPAMP_KEY='your-opamp-api-key'

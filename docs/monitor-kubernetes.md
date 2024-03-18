@@ -38,24 +38,34 @@ kubectl create namespace servicenow
 
 #### 3. Set credentials
 
+[Visit Cloud Observability docs for instructions](https://docs.lightstep.com/docs/create-and-manage-access-tokens) on generating an access token for your project.
+
 ```sh
 export CLOUDOBS_TOKEN='<your-cloudobs-token>'
 kubectl create secret generic servicenow-cloudobs-token \
     -n servicenow --from-literal=token=$CLOUDOBS_TOKEN
 ```
 
+(__Optional__) Set URL for Event Manangement. The URL __must__ be network accessible from the cluster. We recommend using the generic event endpoint: `/api/global/em/jsonv2`.
+
+```sh
+export SERVICENOW_EVENTS_URL='https://<your-instance-host/api/global/em/jsonv2'
+kubectl create configmap servicenow-events-url \
+    -n servicenow --from-literal=url=$SERVICENOW_EVENTS_URL
+```
+
 (__Optional__) Set username for Event Manangement:
 ```sh
-export SERVICENOW_EVENTS_USERNAME='<your-mid-user>'
-kubectl create secret generic servicenow-events-user \
-    -n servicenow --from-literal='USERNAME=$SERVICENOW_EVENTS_USERNAME'
+export SERVICENOW_EVENTS_USERNAME='your-mid-username'
+kubectl create configmap servicenow-events-user \
+    -n servicenow --from-literal=username=$SERVICENOW_EVENTS_USERNAME
 ```
 
 (__Optional__) Set password for Event Manangement:
 ```sh
-export SERVICENOW_EVENTS_PASSWORD='<your-mid-user-pw>'
+export SERVICENOW_EVENTS_PASSWORD='your-mid-user-pw'
 kubectl create secret generic servicenow-events-password \
-    -n servicenow --from-literal='PASSWORD=$SERVICENOW_EVENTS_PASSWORD'
+    -n servicenow --from-literal="password=$SERVICENOW_EVENTS_PASSWORD"
 ```
 
 #### 3. Deploy ServiceNow Collector for Cluster Monitoring
@@ -74,7 +84,7 @@ The pod will deploy after a few seconds, to check status and for errors, run:
 kubectl get pods -n servicenow
 ```
 
-#### 3. Deploy ServiceNow Collector for Node and Workloads Monitoring
+#### 4. Deploy ServiceNow Collector for Node and Workloads Monitoring
 
 Next, deploy collectors to each Kubernetes host to get workload metrics (via Kubelet). To preview the generated manifest before deploying, add the `--dry-run` option to the below command:
 
@@ -85,7 +95,7 @@ helm upgrade otel-collector \
     --values https://raw.githubusercontent.com/lightstep/sn-collector/main/collector/config-k8s/values-node.yaml
 ```
 
-#### 4. See data in ServiceNow
+#### 5. See data in ServiceNow
 
 If all went well, Kubernetes metrics and events will be sent to ServiceNow and Cloud Observability.
 
@@ -121,3 +131,7 @@ helm upgrade --install my-otel-demo open-telemetry/opentelemetry-demo -f collect
 In Cloud Observability, you should see metrics, logs, and traces from the demo environment after a few minutes.
 
 🎉
+
+### Optional: Inject failures into a demo/test cluster 
+
+To simulate some interesting events in the demo cluster, you can use the [chaoskube](https://github.com/linki/chaoskube?tab=readme-ov-file#helm) Helm chart.
