@@ -1,5 +1,7 @@
 ## Monitor Kubernetes with the ServiceNow Collector
 
+Below are instructions on monitoring one of the following Kubernetes cluster environments with ServiceNow.
+
 | Kuberenetes Distibution                        | Support Status            | Architecture |
 | ---------------------------------------------- | ------------------------- | ------------ |
 | GKE (Google Cloud)                             | last three major versions | ARM, AMD     |
@@ -7,13 +9,14 @@
 | AKS (Azure)                                    | last three major versions | ARM, AMD     |
 | Kubernetes                                     | last three major versions | ARM, AMD     |
 
-* **Note:** We recommend Red Hat OpenShift customers use the [Red Hat OpenTelemetry Distribution](https://docs.openshift.com/container-platform/4.15/otel/otel-installing.html).
+**Note:** We recommend Red Hat OpenShift customers use the [Red Hat OpenTelemetry Distribution](https://docs.openshift.com/container-platform/4.15/otel/otel-installing.html).
 
-### Deploy for Kubernetes monitoring with The OpenTelemetry Operator and Helm
 
-#### Requirements
+#### Deploy the collector
 
-* `helm` v3
+To monitor the cluster, make sure you have the following before proceeding:
+
+* `helm` v3 installed locally to deploy charts
 * Kubernetes cluster with local access via `kubectl`
 * active workloads running in your cluster (no workloads or a test cluster? [See below for deploying the OpenTelemetry demo](#optional-run-the-opentelemetry-demo))
 * ability to pull from the public Docker image repository `ghcr.io/lightstep/sn-collector`
@@ -68,7 +71,7 @@ kubectl create secret generic servicenow-events-password \
     -n servicenow --from-literal="password=$SERVICENOW_EVENTS_PASSWORD"
 ```
 
-#### 3. Deploy ServiceNow Collector for Cluster Monitoring
+#### 4. Deploy ServiceNow Collector for Cluster Monitoring
 
 You're now ready to deploy a collector to your cluster to collect cluster-level metrics and events. To preview the generated manifest before deploying, add the `--dry-run` option to the below command:
 
@@ -84,7 +87,7 @@ The pod will deploy after a few seconds, to check status and for errors, run:
 kubectl get pods -n servicenow
 ```
 
-#### 4. Deploy ServiceNow Collector for Node and Workloads Monitoring
+#### 5. Deploy ServiceNow Collector for Node and Workloads Monitoring
 
 Next, deploy collectors to each Kubernetes host to get workload metrics (via Kubelet). To preview the generated manifest before deploying, add the `--dry-run` option to the below command:
 
@@ -95,17 +98,17 @@ helm upgrade otel-collector \
     --values https://raw.githubusercontent.com/lightstep/sn-collector/main/collector/config-k8s/values-node.yaml
 ```
 
-#### 5. See data in ServiceNow
+#### 6. See data in ServiceNow
 
 If all went well, Kubernetes metrics and events will be sent to ServiceNow and Cloud Observability.
 
 🎉
 
-### Optional: Run the OpenTelemetry demo
+## Run the OpenTelemetry demo in your cluster
 
 If you just want to see how OpenTelemetry monitoring works in an otherwise empty or test cluster, the [OpenTelemetry demo](https://github.com/open-telemetry/opentelemetry-demo) is an example microservice environment with real-world metrics, logs, events and traces from a variety of microservices.
 
-#### 1. Add OpenTelemetry helm repository
+### 1. Add OpenTelemetry helm repository
 
 We use the OpenTelemetry Helm charts to install the OpenTelemetry Demo. If you haven't already added the repo, run:
 
@@ -132,6 +135,6 @@ In Cloud Observability, you should see metrics, logs, and traces from the demo e
 
 🎉
 
-### Optional: Inject failures into a demo/test cluster 
+## Inject failures into a demo/test cluster 
 
 To simulate some interesting events in the demo cluster, you can use the [chaoskube](https://github.com/linki/chaoskube?tab=readme-ov-file#helm) Helm chart.
