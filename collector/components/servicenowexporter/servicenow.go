@@ -369,6 +369,8 @@ func formatAdditionalInfo(attrs map[string]string, resourceAttrs map[string]stri
 		if v == "" {
 			continue
 		}
+		// replace . with _ in the key
+		k = strings.ReplaceAll(k, ".", "_")
 		newAttrs[k] = v
 	}
 
@@ -376,6 +378,8 @@ func formatAdditionalInfo(attrs map[string]string, resourceAttrs map[string]stri
 		if v == "" {
 			continue
 		}
+		// replace . with _ in the key
+		k = strings.ReplaceAll(k, ".", "_")
 		newAttrs[k] = v
 	}
 
