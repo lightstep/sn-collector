@@ -366,14 +366,23 @@ func formatAdditionalInfo(attrs map[string]string, resourceAttrs map[string]stri
 	// merge attrs + resource attrs
 	newAttrs := make(map[string]string)
 	for k, v := range resourceAttrs {
+		if v == "" {
+			continue
+		}
+		// replace . with _ in the key
+		k = strings.ReplaceAll(k, ".", "_")
 		newAttrs[k] = v
 	}
 
 	for k, v := range attrs {
+		if v == "" {
+			continue
+		}
+		// replace . with _ in the key
+		k = strings.ReplaceAll(k, ".", "_")
 		newAttrs[k] = v
 	}
 
-	// convert resoruceAttrs
 	bytes, err := json.Marshal(newAttrs)
 	if err != nil {
 		return "", err

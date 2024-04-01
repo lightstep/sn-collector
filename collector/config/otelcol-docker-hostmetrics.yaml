@@ -1,6 +1,6 @@
 #
 # Basic OpenTelemetry host metrics collection running inside a Docker container.
-# Validated with v0.96.0 on 2/21/24
+# Validated with v0.97.0 on 2/21/24
 #
 receivers:
   prometheus/self:
