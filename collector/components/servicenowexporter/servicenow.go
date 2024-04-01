@@ -3,7 +3,6 @@ package servicenowexporter
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -373,12 +372,13 @@ func formatAdditionalInfo(attrs map[string]string, resourceAttrs map[string]stri
 		newAttrs[k] = v
 	}
 
-	// convert resoruceAttrs
-	bytes, err := json.Marshal(newAttrs)
-	if err != nil {
-		return "", err
+	// convert resourceAttrs
+	// key1=value2,key2=value2
+	additionalInfoString := ""
+	for k, v := range newAttrs {
+		additionalInfoString += k + "=" + v + ","
 	}
-	return string(bytes), nil
+	return additionalInfoString, nil
 }
 
 func formatNode(resourceAttrs map[string]string) string {

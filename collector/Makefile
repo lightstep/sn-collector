@@ -34,7 +34,7 @@ test:
 
 .PHONY: install-tools
 install-tools:
-	go install go.opentelemetry.io/collector/cmd/builder@v0.96.0
+	go install go.opentelemetry.io/collector/cmd/builder@v0.97.0
 	go install github.com/mh-cbon/go-msi@latest
 
 .PHONY: docker - Build docker image

@@ -64,7 +64,7 @@ func createLogsExporter(
 
 func NewFactory() exporter.Factory {
 	return exporter.NewFactory(
-		metadata.Type,
+		component.MustNewType(metadata.Type),
 		createDefaultConfig,
 		exporter.WithMetrics(createMetricsExporter, metadata.MetricsStability),
 		exporter.WithLogs(createLogsExporter, metadata.LogsStability),
