@@ -8,7 +8,7 @@ import (
 
 func TestFactory(t *testing.T) {
 	f := NewFactory()
-	assert.EqualValues(t, "servicenow", f.Type())
+	assert.EqualValues(t, "servicenow", f.Type().String())
 	cfg := f.CreateDefaultConfig()
 	assert.NotNil(t, cfg)
 }
