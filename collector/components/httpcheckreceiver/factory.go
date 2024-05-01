@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/collector/receiver"
 	"go.opentelemetry.io/collector/receiver/scraperhelper"
 
-	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/httpcheckreceiver/internal/metadata"
+	"github.com/lightstep/sn-collector/collector/httpcheckreceiver/internal/metadata"
 )
 
 var errConfigNotHTTPCheck = errors.New("config was not a HTTP check receiver config")

@@ -19,7 +19,7 @@ import (
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
-	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/httpcheckreceiver/internal/metadata"
+	"github.com/lightstep/sn-collector/collector/httpcheckreceiver/internal/metadata"
 )
 
 var (
