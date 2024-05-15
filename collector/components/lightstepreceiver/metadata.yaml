@@ -1,0 +1,11 @@
+type: lightstep
+
+status:
+  class: receiver
+  stability:
+    beta: [traces]
+  distributions:
+  - core
+  - contrib
+  codeowners:
+    active: [carlosalberto]
