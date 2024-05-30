@@ -22,12 +22,13 @@ To monitor the cluster, make sure you have the following before proceeding:
 * ability to pull from the public Docker image repository `ghcr.io/lightstep/sn-collector`
 * `ClusterRole` 
 
-#### 1. Add OpenTelemetry helm repository
+#### 1. Add OpenTelemetry and ServiceNow helm repository
 
 We use the OpenTelemetry Helm charts to configure collectors for Kubernetes monitoring. Helm charts make it easy to deploy and configure Kubernetes manifests.
 
 ```sh
 helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+helm repo add servicenow https://install.service-now.com/glide/distribution/builds/package/informer/informer-helm/repo
 helm repo update
 ```
 
@@ -57,6 +58,12 @@ kubectl create configmap servicenow-events-url \
     -n servicenow --from-literal=url=$SERVICENOW_EVENTS_URL
 ```
 
+(__Optional__)  Set username and password for CNO with a user that has the `discovery_admin` role, replacing INSTANCE_NAME with your instance name.
+```sh
+kubectl create secret generic k8s-informer-cred-INSTANCE_NAME -n servicenow \
+    --from-literal=.user=USERNAME --from-literal=.password=PASSWORD
+```
+
 (__Optional__) Set username for Event Manangement:
 ```sh
 export SERVICENOW_EVENTS_USERNAME='your-mid-username'
@@ -71,7 +78,7 @@ kubectl create secret generic servicenow-events-password \
     -n servicenow --from-literal="password=$SERVICENOW_EVENTS_PASSWORD"
 ```
 
-#### 4. Deploy ServiceNow Collector for Cluster Monitoring
+#### 4. Deploy ServiceNow Collector for Cluster Monitoring and CNO for Visibility
 
 You're now ready to deploy a collector to your cluster to collect cluster-level metrics and events. To preview the generated manifest before deploying, add the `--dry-run` option to the below command:
 
@@ -79,6 +86,14 @@ You're now ready to deploy a collector to your cluster to collect cluster-level 
 helm upgrade otel-collector-cluster open-telemetry/opentelemetry-collector \ 
     --install --namespace servicenow \
     --values https://raw.githubusercontent.com/lightstep/sn-collector/main/collector/config-k8s/values-cluster.yaml
+```
+
+Next, install CNO for visibility. Additional install instructions for CNO are on the ServiceNow documentation [portal](https://docs.servicenow.com/bundle/washingtondc-it-operations-management/page/product/cloud-native-operations-visibility/task/cnov-deploy-install.html). By sending `Y` you accept the terms and conditions of ServiceNow CNO.
+
+```sh
+helm upgrade k8s-informer servicenow/k8s-informer-chart \ 
+    --set acceptEula=Y --set instance.name=INSTANCE_NAME --set clusterName="CLUSTER_NAME" \
+    --install --namespace servicenow
 ```
 
 The pod will deploy after a few seconds, to check status and for errors, run:
