@@ -12,10 +12,12 @@ logInfo () {
 if [[ -d $MID_CONTAINER_DIR ]]
 then
   LOG_FILE="${MID_CONTAINER_DIR}/mid-container.log";
+  logInfo "Current user id: `id`"
   logInfo "Backup the config and other metadata files to the persistent volume"
-  \cp -fp /opt/snc_mid_server/agent/config.xml \
+  \cp -f /opt/snc_mid_server/agent/config.xml \
      /opt/snc_mid_server/agent/conf/wrapper-override.conf \
      /opt/snc_mid_server/agent/.initialized \
+     /opt/snc_mid_server/agent/.env_hash \
      /opt/snc_mid_server/.container \
      /opt/snc_mid_server/agent/properties/glide.properties \
      ${MID_CONTAINER_DIR}/

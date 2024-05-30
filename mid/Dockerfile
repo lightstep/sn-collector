@@ -1,16 +1,19 @@
-# ################
-# 1st Stage: Use openjdk 8 to verify signature w/ jarsigner
-# https://developers.redhat.com/articles/2022/09/16/updating-docker-hubs-openjdk-image#openjdk_and_java_se_updates
-# ################
-FROM eclipse-temurin:8-jdk-alpine AS download_verification
+# ########################################################################################################################
+# 1st Stage:
+#     - Download the MID installation ZIP file, verify the digital signature and unzip the ZIP file to the base directory
+#     - Copy the required scripts and other files from the recipe asset folder to the base directory
+#     - Set the group's file permissions to match the owner's file permissions for the entire base directory
+# ########################################################################################################################
+
+FROM eclipse-temurin:8-jdk-alpine AS pre_installation
 
 RUN apk -q update && \
-    apk add bash && \
+    apk add -q bash && \
     apk add -q wget && \
     rm -rf /tmp/*
 
-ARG MID_INSTALLATION_URL=https://install.service-now.com/glide/distribution/builds/package/app-signed/mid/2024/03/06/mid.vancouver-07-06-2023__patch7-hotfix1-03-05-2024_03-06-2024_1225.linux.x86-64.zip
-ARG MID_INSTALLATION_FILE
+ARG MID_INSTALLATION_URL=https://install.service-now.com/glide/distribution/builds/package/mid/2024/01/22/mid.washingtondc-12-20-2023_01-22-2024_1800.linux.x86-64.zip
+ARG MID_INSTALLATION_FILE=""
 ARG MID_SIGNATURE_VERIFICATION="TRUE"
 
 WORKDIR /opt/snc_mid_server/
@@ -18,7 +21,7 @@ WORKDIR /opt/snc_mid_server/
 COPY asset/* /opt/snc_mid_server/
 
 # download.sh and validate_signature.sh
-RUN chmod 6750 /opt/snc_mid_server/*.sh
+RUN chmod 750 /opt/snc_mid_server/*.sh
 
 RUN echo "Check MID installer URL: ${MID_INSTALLATION_URL} or Local installer: ${MID_INSTALLATION_FILE}"
 
@@ -32,76 +35,77 @@ RUN if [ "$MID_SIGNATURE_VERIFICATION" = "TRUE" ] || [ "$MID_SIGNATURE_VERIFICAT
     then echo "Verify the signature of the installation file" && /opt/snc_mid_server/validate_signature.sh /tmp/mid.zip; \
     else echo "Skip signature validation of the installation file "; fi
 
-RUN unzip -d /opt/snc_mid_server/ /tmp/mid.zip && rm -f /tmp/mid.zip
+# Clean up and extract mid installation zip file to /opt/snc_mid_server/
+RUN rm /opt/snc_mid_server/* && unzip -d /opt/snc_mid_server/ /tmp/mid.zip && rm -f /tmp/mid.zip
 
-# ################
-# Final Stage (using the downloaded ZIP file from previous stage)
-# ################
-FROM almalinux:9.1
+# Copy only required scripts and .container
+COPY asset/init asset/.container asset/check_health.sh asset/post_start.sh asset/pre_stop.sh asset/calculate_mid_env_hash.sh /opt/snc_mid_server/
 
-RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+# Give the owner group the same permissions as the owner user.
+# Running this command in this stage reduces the final image size.
+RUN chmod -R g=u /opt/snc_mid_server
 
-RUN dnf update -y && \
-    dnf install -y  --allowerasing bind-utils \
+# ########################################################################################################################
+# Final Stage:
+#     - Install the base OS security and bugfix updates
+#     - Install the packages required by the MID Server application
+#     - Add the mid user and group
+#     - Copy application files from the previous stage
+#     - Grant the execution permission for the scripts and binaries that do not have it
+# ########################################################################################################################
+
+FROM almalinux:9.2
+
+# Install security and bugfix updates, and then the required packages.
+RUN dnf update -y --security --bugfix && \
+    dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \
+    dnf install -y --allowerasing glibc-langpack-en \
+                    bind-utils \
                     xmlstarlet \
                     curl \
-                    procps \
-                    net-tools \
-                    iputils &&\
-    dnf clean packages -y && \
+                    procps-ng \
+                    net-tools && \
+    dnf clean all -y && \
     rm -rf /tmp/*
 
-# ##########################
-# Build argument definition
-# ##########################
-
-
 ARG MID_USERNAME=mid
-
 ARG GROUP_ID=1001
-
 ARG USER_ID=1001
 
+# Env Variables
+ENV MID_INSTANCE_URL="" \
+    MID_INSTANCE_USERNAME="" \
+    MID_INSTANCE_PASSWORD="" \
+    MID_SERVER_NAME="" \
+    # Ensure UTF-8 Encoding
+    LANG="en_US.UTF-8" \
+    # Optional Env Var
+    MID_PROXY_HOST="" \
+    MID_PROXY_PORT="" \
+    MID_PROXY_USERNAME="" \
+    MID_PROXY_PASSWORD="" \
+    MID_SECRETS_FILE="" \
+    MID_MUTUAL_AUTH_PEM_FILE="" \
+    MID_SSL_BOOTSTRAP_CERT_REVOCATION_CHECK="" \
+    MID_SSL_USE_INSTANCE_SECURITY_POLICY=""
 
-# ############################
-# Runtime Env Var Definition
-# ############################
-
-# Ensure UTF-8 Encoding
-ENV LANG en_US.UTF-8
-
-# Mandatory Env Var
-ENV MID_INSTANCE_URL "" \
-    MID_INSTANCE_USERNAME "" \
-    MID_INSTANCE_PASSWORD "" \
-    MID_SERVER_NAME "" \
-# Optional Env Var
-    MID_PROXY_HOST "" \
-    MID_PROXY_PORT "" \
-    MID_PROXY_USERNAME "" \
-    MID_PROXY_PASSWORD "" \
-    MID_SECRETS_FILE "" \
-    MID_MUTUAL_AUTH_PEM_FILE "" \
-    MID_SSL_BOOTSTRAP_CERT_REVOCATION_CHECK "" \
-    MID_SSL_USE_INSTANCE_SECURITY_POLICY ""
-
-
+# Add the mid user and group
 RUN if [[ -z "${GROUP_ID}" ]]; then GROUP_ID=1001; fi && \
-		if [[ -z "${USER_ID}" ]]; then USER_ID=1001; fi && \
-        echo "Add GROUP id: ${GROUP_ID}, USER id: ${USER_ID} for username: ${MID_USERNAME}"
+	if [[ -z "${USER_ID}" ]]; then USER_ID=1001; fi && \
+    echo "Add GROUP id: ${GROUP_ID}, USER id: ${USER_ID} for username: ${MID_USERNAME}" && \
+    groupadd -g $GROUP_ID $MID_USERNAME && \
+    useradd -c "MID container user" --shell /sbin/nologin -r -m -u $USER_ID -g $MID_USERNAME $MID_USERNAME
 
+# Copy files from previous stage and make them owned by the mid user and the root group.
+# In the previous stage, the owner group permissions are already set to the same owner user permissions.
+# The dynamic user id assigned by OpenShift belongs to the root group, so it will have all the required permissions.
+COPY --chown=$USER_ID:0 --from=pre_installation /opt/snc_mid_server /opt/snc_mid_server
 
-RUN groupadd -g $GROUP_ID $MID_USERNAME && \
-        useradd -c "MID container user" -r -m -u $USER_ID -g $MID_USERNAME $MID_USERNAME
-
-# only copy needed scripts and .container
-COPY asset/init asset/.container asset/check_health.sh asset/post_start.sh asset/pre_stop.sh /opt/snc_mid_server/
-
-# 6:setuid + setgid, 750: a:rwx, g:rx, o:
-RUN chmod 6750 /opt/snc_mid_server/* && chown -R $MID_USERNAME:$MID_USERNAME /opt/snc_mid_server/
-
-# Copy agent/ from download_verification
-COPY --chown=$MID_USERNAME:$MID_USERNAME  --from=download_verification /opt/snc_mid_server/agent/ /opt/snc_mid_server/agent/
+# When containers run as the root user, file permissions are ignored, but for rootless containers, 
+# the permission bit is required in order to execute files.
+RUN chmod 770 /opt/snc_mid_server && chmod 770 /opt/snc_mid_server/init && \
+    chmod 770 /opt/snc_mid_server/*.sh && \
+    chmod 770 /opt/snc_mid_server/agent/bin/wrapper-linux*
 
 # Check if the wrapper PID file exists and a HeartBeat is processed in the last 30 minutes
 HEALTHCHECK --interval=5m --start-period=3m --retries=3 --timeout=15s \

@@ -44,6 +44,9 @@ IS_MUTUAL_AUTH=0
 # File to track setup completion
 MID_INITIALIZED_FILE="${MID_HOME}/.initialized"
 
+# File to keep env checksum
+MID_ENV_HASH_FILE="${MID_HOME}/.env_hash"
+
 #  Set up log file to the persistent volume if available 
 MID_CONTAINER_DIR="/opt/snc_mid_server/mid_container"
 LOG_FILE="/opt/snc_mid_server/mid-container.log"
@@ -130,9 +133,6 @@ generateConfigXml () {
   then
     # If Cert (PEM) file is set and exists, proceed with mutual auth
     logInfo "DOCKER: mutual auth cert file found: $MID_MUTUAL_AUTH_PEM_FILE"
-
-    # Ensure log file exists for logger in java classes
-    touch /home/mid/java0.log
 
     cd /opt/snc_mid_server/agent && \
       sh bin/scripts/manage-certificates.sh -a "DefaultSecurityKeyPairHandle" $MID_MUTUAL_AUTH_PEM_FILE
@@ -340,6 +340,40 @@ validateMandatoryParameter() {
   fi
 }
 
+updateConfigurationFiles () {
+  generateConfigXml
+  updateWrapperConfFromEnvVars
+}
+
+isEnvHashChanged () {
+  logInfo "DOCKER: current_env_hash=${current_env_hash}"
+
+  if [ -e $MID_ENV_HASH_FILE ]
+  then
+    prev_env_hash=$(cat $MID_ENV_HASH_FILE)
+    logInfo "DOCKER: prev_env_hash=${prev_env_hash}"
+
+    if [ "$current_env_hash" == "$prev_env_hash" ]
+    then
+      logInfo "DOCKER: The env hash is the same"
+    else
+      logInfo "DOCKER: The env hash has changed"
+      return 0
+    fi
+  else
+    # This should not happen because the env hash is saved during
+    # first time setup and and anytime the hash has changed.
+    logInfo "DOCKER: The previous $MID_ENV_HASH_FILE not found"
+  fi
+
+  return 1
+}
+
+saveEnvHash () {
+  logInfo "DOCKER: Saving the current env hash $current_env_hash to $MID_ENV_HASH_FILE"
+  echo "$current_env_hash" > $MID_ENV_HASH_FILE
+}
+
 # max wait time for initialization
 MAX_INIT_WAIT_TIME=60
 
@@ -398,19 +432,27 @@ midSetup () {
   if [[ -f "${MID_CONTAINER_DIR}/config.xml" ]]
   then
     logInfo "Restore the config and other metadata files from the persistent volume"
-    \cp -fp "${MID_CONTAINER_DIR}/config.xml" $CONF_FILE
-    \cp -fp "${MID_CONTAINER_DIR}/wrapper-override.conf" $WRAPPER_CONF_FILE
-    \cp -fp "${MID_CONTAINER_DIR}/.initialized" $MID_INITIALIZED_FILE
-    \cp -fp "${MID_CONTAINER_DIR}/.container" /opt/snc_mid_server/.container
-    \cp -fp "${MID_CONTAINER_DIR}/glide.properties" /opt/snc_mid_server/agent/properties/
+    \cp -f "${MID_CONTAINER_DIR}/config.xml" $CONF_FILE
+    \cp -f "${MID_CONTAINER_DIR}/wrapper-override.conf" $WRAPPER_CONF_FILE
+    \cp -f "${MID_CONTAINER_DIR}/.initialized" $MID_INITIALIZED_FILE
+    \cp -f "${MID_CONTAINER_DIR}/.env_hash" $MID_ENV_HASH_FILE
+    \cp -f "${MID_CONTAINER_DIR}/.container" /opt/snc_mid_server/.container
+    \cp -f "${MID_CONTAINER_DIR}/glide.properties" /opt/snc_mid_server/agent/properties/
   fi
   
+  current_env_hash=$(./calculate_mid_env_hash.sh)
+
   if [[ ! -f $MID_INITIALIZED_FILE  || $flag == "-f" ]]
   then
-    generateConfigXml
-    updateWrapperConfFromEnvVars
+    updateConfigurationFiles
     touch $MID_INITIALIZED_FILE
     date > $MID_INITIALIZED_FILE
+    saveEnvHash
+  elif isEnvHashChanged
+  then
+    logInfo "DOCKER: Reupdate MID Server configuration files."
+    updateConfigurationFiles
+    saveEnvHash
   fi
 }
 
@@ -425,6 +467,8 @@ midHelp () {
 
 # SIGTERM (15) : software termination signal - typically sent docker stop or by kill by default
 trap '_handleSignal_SIGTERM' SIGTERM
+
+logInfo "DOCKER: running the init script by the user id: `id`"
 
 case "$1" in
   start)
