@@ -1,0 +1,200 @@
+---
+# Via: https://support.servicenow.com/kb?id=kb_article_view&sysparm_article=KB1325173
+apiVersion: v1
+kind: Service
+metadata:
+  name: servicenow-mid
+  namespace: servicenow
+  labels:
+    app: MIDServerManagement
+    provider: ServiceNow
+spec:
+  clusterIP: None
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: servicenow-mid-statefulset
+  namespace: servicenow
+  labels:
+    app: MIDServerManagement
+    deployment: servicenow-mid-statefulset
+    provider: ServiceNow
+spec:
+  serviceName: servicenow-mid
+  replicas: 1 # number of mid servers, default is 1
+  selector:
+    matchLabels:
+      app: MIDServerManagement
+      deployment: servicenow-mid-statefulset
+      provider: ServiceNow
+  volumeClaimTemplates:
+  - metadata:
+      name: servicenow-mid-volumeclaim
+      namespace: servicenow
+      labels:
+        app: MIDServerManagement
+        deployment: servicenow-mid-statefulset
+        provider: ServiceNow
+    spec:
+      # works on Google Cloud
+      storageClassName: standard
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          # Make sure to have enough disk space for the work, logs, extlib, scripts and other folders at the volume mounts below
+          storage: 1Gi
+  template:
+    metadata:
+      labels:
+        app: MIDServerManagement
+        deployment: servicenow-mid-statefulset
+        provider: ServiceNow
+    spec:
+      automountServiceAccountToken: false
+      # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/
+      # Duration in seconds the pod needs to terminate gracefully. Defaults to 30 seconds.
+      terminationGracePeriodSeconds: 300
+
+      # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/
+      # Allow the Kubelet to change the ownership of that volume to be owned by fsGroup
+      # so that MID server has read/write permission to the persistent volume
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+
+      # https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+      # Specify the registry secret if the image is in a private registry
+      # imagePullSecrets:
+      # - name: <YOUR_REGISTRY_SECRET>
+
+      containers:
+      - name: servicenow-mid-statefulset-container
+        # Put your image URL where Kubernetes can pull the image from, i.e. midcontainerregistry.azurecr.io/mid:tokyo-07-08-2022_04-07-2023_0200
+        image: ghcr.io/lightstep/sn-collector/mid-experimental:main
+        imagePullPolicy: Always # other options: IfNotPresent, Never
+
+        env:
+        # Define Environment variables
+        # You can put mid config parameter or wrapper config parameters here
+        # Env variable name for MID config parameter starts with MID_CONFIG_ followed by the config parameter name where a dot is replaced by double underscores.
+        # Env variable name for Wrapper config parameter starts with MID_WRAPPER_ followed by the wrapper parameter name where a dot is replaced by double underscores.
+        
+        # - name: MID_CONFIG_mid__log__level
+        #   value: debug
+
+        # Put the mid profile id here if you are deploying MID Servers linked to a profile
+        # https://docs.servicenow.com/bundle/tokyo-servicenow-platform/page/product/mid-server/concept/containerized-mid-deployment.html
+        # - name: MID_CONFIG_mid_profile_id
+        #  value: <YOUR_MID_PROFILE_ID>
+
+        # Set MID Server name. The default value is _NAMESPACE_HOSTNAME_ which is a place holder and will be replaced by the actual k8s namespace
+        # and hostname when the container starts for the first time. See more details in the init script of the recipe
+        # Hostnames in statefulset follows the pattern <YOUR_STATEFULSET_NAME>-0 ,  <YOUR_STATEFULSET_NAME>-1, etc.
+        - name: MID_CONFIG_name
+          value: _NAMESPACE_HOSTNAME_
+
+        # Put your instance URL here
+        - name: MID_CONFIG_url
+          value: https://hlasalesdemo1.service-now.com
+
+        # For instance authentication, you can choose either (A) basic auth or (B) mutual auth (mTLS)
+        # If using mTLS, you don't need to provide user name and password. The sensitive data such as password 
+        # or mutual auth private certificate should be passed by using Kubernetes secrets
+        # https://docs.servicenow.com/bundle/utah-servicenow-platform/page/product/mid-server/concept/containerized-mid-deployment.html
+
+        # Option A: using basic authentication
+        # 1. Create a file named <YOUR_MID_SECRET_PROPERTIES_FILENAME> with the content
+        #         mid.instance.password=<YOUR_MID_USER_PASSWORD>
+        # 2. Create a secret named <YOUR_MID_SECRET_NAME>
+        #         kubectl create secret generic <YOUR_MID_SECRET_NAME> --from-file=<YOUR_MID_SECRET_PROPERTIES_FILENAME>
+        # <MID_SECRET_MOUNT_PATH> is the location where the mid secret volume is mounted to container file system 
+        - name: MID_CONFIG_mid__instance__username
+          value: clay.mid
+        - name: MID_SECRETS_FILE
+          value: /etc/secrets/mid.secret
+
+        # Option B: using mutual auth (mTLS)
+        # 1. Make sure you have the mutual auth certificate file named <YOUR_MID_MUTUAL_AUTH_PEM_FILENAME> which need to import to the MID Server keystore
+        # 2. Create a secret named <YOUR_MID_MUTUAL_AUTH_SECRET_NAME>
+        #         kubectl create secret generic <YOUR_MID_MUTUAL_AUTH_SECRET_NAME> --from-file=<YOUR_MID_MUTUAL_AUTH_PEM_FILENAME>
+        # 3. Uncomment the 2 lines below. <MID_MUTUAL_AUTH_SECRET_MOUNT_PATH> is the location where the mid mutual auth secret volume is mounted to the container file system. 
+        # - name: MID_MUTUAL_AUTH_PEM_FILE
+        #  value: <MID_MUTUAL_AUTH_SECRET_MOUNT_PATH>/<YOUR_MID_MUTUAL_AUTH_PEM_FILENAME>
+        
+        - name: MID_CONTAINER_DEPLOYMENT_NAME
+          value: servicenow-mid-statefulset
+        - name: MID_CONTAINER_DEPLOYMENT_NAMESPACE
+          value: servicenow
+
+        # wrapper config parameters
+        - name: MID_WRAPPER_wrapper__java__maxmemory
+          value: '2024'
+
+        # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+        resources:
+          requests:
+            cpu: '1'
+            memory: 2Gi
+          limits:
+            cpu: '1'
+            memory: 4Gi
+
+        # https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks
+        # config.xml and other configuration files are backed up by the preStop hook
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - /opt/snc_mid_server/pre_stop.sh
+
+        volumeMounts:
+        - mountPath: /etc/secrets
+          name: servicenow-mid-statefulset-mnt-shared-secr
+          readOnly: true
+
+        # - mountPath: <MID_MUTUAL_AUTH_SECRET_MOUNT_PATH>
+        #   name: <YOUR_STATEFULSET_NAME>-mnt-shared-secr
+        #   readOnly: true
+
+        # https://kubernetes.io/docs/concepts/storage/volumes/#using-subpath
+        # Share one volume for multiple uses in a single pod. The volumeMounts.subPath property specifies a sub-path inside the referenced volume instead of its root.
+        # MID Server application is installed in the /opt/snc_mid_server folder. Only subfolders which is not present or empty in the image can be mounted here.
+        - mountPath: /opt/snc_mid_server/mid_container
+          name: servicenow-mid-volumeclaim
+          subPath: mid_container
+        - mountPath: /opt/snc_mid_server/agent/extlib
+          name: servicenow-mid-volumeclaim
+          subPath: agent/extlib
+        - mountPath: /opt/snc_mid_server/agent/logs
+          name: servicenow-mid-volumeclaim
+          subPath: agent/logs
+        - mountPath: /opt/snc_mid_server/agent/scripts
+          name: servicenow-mid-volumeclaim
+          subPath: agent/scripts
+        - mountPath: /opt/snc_mid_server/agent/security
+          name: servicenow-mid-volumeclaim
+          subPath: agent/security
+        - mountPath: /opt/snc_mid_server/agent/security_backup
+          name: servicenow-mid-volumeclaim
+          subPath: agent/security_backup
+        - mountPath: /opt/snc_mid_server/agent/work
+          name: servicenow-mid-volumeclaim
+          subPath: agent/work
+      serviceAccountName: default
+
+      # Specify volumes for basic auth secret or mutual auth secret
+      volumes:
+      - name: servicenow-mid-statefulset-mnt-shared-secr
+        projected:
+          sources:
+      # Option A: Using basic auth
+          - secret:
+              name: servicenow-mid-secret
+      # Option B: Using mutual auth
+      #    - secret:
+      #        name: <YOUR_MID_MUTUAL_AUTH_SECRET_NAME>

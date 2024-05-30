@@ -153,3 +153,13 @@ In Cloud Observability, you should see metrics, logs, and traces from the demo e
 ## Inject failures into a demo/test cluster 
 
 To simulate some interesting events in the demo cluster, you can use the [chaoskube](https://github.com/linki/chaoskube?tab=readme-ov-file#helm) Helm chart.
+
+#### Experimental: Deploy the MID Server to a Cluster
+
+```
+    echo "mid.instance.password=<YOUR_MID_USER_PASSWORD>" > mid.secret
+    kubectl create secret generic servicenow-mid-secret --from-file=mid.secret -n servicenow
+
+    # edit the username and instance URL before applying
+    kubectl apply -f collector/config-k8s/mid-statefulset.yaml
+```
