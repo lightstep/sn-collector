@@ -53,8 +53,9 @@ receivers:
       github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azuremonitorreceiver v0.98.0 
   - gomod:
       github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azureeventhubreceiver v0.98.0 
-  - gomod:
-      github.com/open-telemetry/opentelemetry-collector-contrib/receiver/httpcheckreceiver v0.98.0 
+  - gomod: "github.com/lightstep/sn-collector/collector/httpcheckreceiver v0.0.1"
+    name: "httpcheckreceiver"
+    path: "./components/httpcheckreceiver"
   - gomod:
       github.com/open-telemetry/opentelemetry-collector-contrib/receiver/k8seventsreceiver v0.98.0 
   - gomod:
