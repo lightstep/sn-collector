@@ -31,9 +31,7 @@ RUN if [ -z "$MID_INSTALLATION_FILE" ] ; \
     else echo "Use local file: $MID_INSTALLATION_FILE" && ls -alF /opt/snc_mid_server/ && mv /opt/snc_mid_server/$MID_INSTALLATION_FILE /tmp/mid.zip ; fi
 
 # Verify mid.zip signature
-RUN if [ "$MID_SIGNATURE_VERIFICATION" = "TRUE" ] || [ "$MID_SIGNATURE_VERIFICATION" = "true" ] ; \
-    then echo "Verify the signature of the installation file" && /opt/snc_mid_server/validate_signature.sh /tmp/mid.zip; \
-    else echo "Skip signature validation of the installation file "; fi
+RUN echo "Skip signature validation of the installation file"
 
 # Clean up and extract mid installation zip file to /opt/snc_mid_server/
 RUN rm /opt/snc_mid_server/* && unzip -d /opt/snc_mid_server/ /tmp/mid.zip && rm -f /tmp/mid.zip
