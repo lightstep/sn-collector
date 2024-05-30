@@ -10,11 +10,30 @@ extraEnvs:
       secretKeyRef:
         name: servicenow-cloudobs-token
         key: token
+        optional: true
   - name: SERVICENOW_EVENTS_URL
     valueFrom:
       configMapKeyRef:
         name: servicenow-events-url
         key: url
+        optional: true
+  - name: MID_INSTANCE_METRICS_URL
+    valueFrom:
+      configMapKeyRef:
+        name: servicenow-mid-url
+        key: url
+        optional: true
+  - name: MID_WEBSERVER_USER
+    valueFrom:
+      configMapKeyRef:
+        name: servicenow-mid-webserver-user
+        key: username
+        optional: true
+  - name: MID_WEBSERVER_PASS
+    valueFrom:
+      secretKeyRef:
+        name: servicenow-mid-webserver-pass
+        key: password
         optional: true
   - name: SERVICENOW_EVENTS_USERNAME
     valueFrom:
@@ -162,6 +181,10 @@ config:
             - set(severity_number, SEVERITY_NUMBER_WARN) where attributes["type"] == "Warning"
 
   exporters:
+    servicenow/metrics:
+      instance_metrics_url: ${env:MID_INSTANCE_METRICS_URL}
+      username: ${env:MID_WEBSERVER_USER}
+      password: ${env:MID_WEBSERVER_PASS}
     # Comment out the servicenow/events exporter and
     # remove from service pipeline if using the -contrib build of the collector
     servicenow/events:
@@ -203,13 +226,13 @@ config:
       metrics/collector-monitoring:
         receivers: [prometheus]
         processors: [k8sattributes, concurrentbatch]
-        exporters: [debug, otlp/cloudobs]
+        exporters: [debug]
       metrics:
         processors: [k8sattributes, concurrentbatch]
-        exporters: [debug, otlp/cloudobs]
+        exporters: [debug, servicenow/metrics]
       logs:
         processors: [k8sattributes, transform/events, concurrentbatch]
-        exporters: [debug, otlp/cloudobs, servicenow/events]
+        exporters: [debug, servicenow/events]
 
 ports:
   jaeger-compact:

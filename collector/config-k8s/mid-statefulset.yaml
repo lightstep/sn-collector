@@ -9,8 +9,12 @@ metadata:
     app: MIDServerManagement
     provider: ServiceNow
 spec:
-  clusterIP: None
-
+  ports:
+  - port: 8097
+    name: web
+  type: ClusterIP
+  selector:
+    app: MIDServerManagement
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -75,7 +79,9 @@ spec:
         # Put your image URL where Kubernetes can pull the image from, i.e. midcontainerregistry.azurecr.io/mid:tokyo-07-08-2022_04-07-2023_0200
         image: ghcr.io/lightstep/sn-collector/mid-experimental:main
         imagePullPolicy: Always # other options: IfNotPresent, Never
-
+        ports:
+        - containerPort: 8097
+          name: web
         env:
         # Define Environment variables
         # You can put mid config parameter or wrapper config parameters here
@@ -112,7 +118,7 @@ spec:
         #         kubectl create secret generic <YOUR_MID_SECRET_NAME> --from-file=<YOUR_MID_SECRET_PROPERTIES_FILENAME>
         # <MID_SECRET_MOUNT_PATH> is the location where the mid secret volume is mounted to container file system 
         - name: MID_CONFIG_mid__instance__username
-          value: clay.mid
+          value: __REPLACE_WITH_YOUR_USERNAME__
         - name: MID_SECRETS_FILE
           value: /etc/secrets/mid.secret
 

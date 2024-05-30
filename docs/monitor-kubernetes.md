@@ -12,7 +12,7 @@ Below are instructions on monitoring one of the following Kubernetes cluster env
 **Note:** We recommend Red Hat OpenShift customers use the [Red Hat OpenTelemetry Distribution](https://docs.openshift.com/container-platform/4.15/otel/otel-installing.html).
 
 
-#### Deploy the collector
+### Deploy the collector and CNO
 
 To monitor the cluster, make sure you have the following before proceeding:
 
@@ -22,7 +22,7 @@ To monitor the cluster, make sure you have the following before proceeding:
 * ability to pull from the public Docker image repository `ghcr.io/lightstep/sn-collector`
 * `ClusterRole` 
 
-#### 1. Add OpenTelemetry and ServiceNow helm repository
+#### 1. Add OpenTelemetry and ServiceNow helm repositories
 
 We use the OpenTelemetry Helm charts to configure collectors for Kubernetes monitoring. Helm charts make it easy to deploy and configure Kubernetes manifests.
 
@@ -58,7 +58,7 @@ kubectl create configmap servicenow-events-url \
     -n servicenow --from-literal=url=$SERVICENOW_EVENTS_URL
 ```
 
-(__Optional__)  Set username and password for CNO with a user that has the `discovery_admin` role, replacing INSTANCE_NAME with your instance name.
+(__Optional__)  Set username and password for CNO with a user that has the `discovery_admin` role, replacing `INSTANCE_NAME` with your instance name.
 ```sh
 kubectl create secret generic k8s-informer-cred-INSTANCE_NAME -n servicenow \
     --from-literal=.user=USERNAME --from-literal=.password=PASSWORD
@@ -113,9 +113,9 @@ helm upgrade otel-collector \
     --values https://raw.githubusercontent.com/lightstep/sn-collector/main/collector/config-k8s/values-node.yaml
 ```
 
-#### 6. See data in ServiceNow
+#### 6. See events in ServiceNow
 
-If all went well, Kubernetes metrics and events will be sent to ServiceNow and Cloud Observability.
+If all went well, Kubernetes events will be sent to ServiceNow and Cloud Observability. To send Kubernetes metrics, see instructions below on deploying a MID server.
 
 🎉
 
@@ -154,12 +154,44 @@ In Cloud Observability, you should see metrics, logs, and traces from the demo e
 
 To simulate some interesting events in the demo cluster, you can use the [chaoskube](https://github.com/linki/chaoskube?tab=readme-ov-file#helm) Helm chart.
 
-#### Experimental: Deploy the MID Server to a Cluster
+## Experimental: Deploy the MID Server to a cluster configured for Metric Intelligence
 
-```
+Set the password for a user that can connect to the MID on your instance.
+```sh
     echo "mid.instance.password=<YOUR_MID_USER_PASSWORD>" > mid.secret
     kubectl create secret generic servicenow-mid-secret --from-file=mid.secret -n servicenow
+```
 
+Manually download and edit the file to specify your username and instance URL, then apply. Note the cluster must have at least 4GB of free memory and 2 CPUs.
+
+```sh
     # edit the username and instance URL before applying
     kubectl apply -f collector/config-k8s/mid-statefulset.yaml
+```
+
+After a few minutes the MID server should appear under MID > Servers on your instance. Validate and [Enable the REST Listener](https://docs.servicenow.com/bundle/washingtondc-it-operations-management/page/product/event-management/task/auto-setup.html) so the MID Server can accept metrics.
+
+If all goes well, the following command should return a 401 error:
+
+```sh
+    kubectl port-forward servicenow-mid-statefulset-0 8097:8097 -n servicenow
+    curl http://localhost:8097/api/mid/sa/metrics
+```
+
+Set a configuration map variable to reference the MID server URL:
+
+```sh
+    kubectl create configmap servicenow-mid-url -n servicenow --from-literal=url=http://servicenow-mid:8097/api/mid/sa/metrics
+```
+
+Set the MID webserver username:
+
+```sh
+    kubectl create configmap servicenow-mid-webserver-user -n servicenow --from-literal=username=WEBSERVER_USERNAME
+```
+
+Set the MID webserver password:
+
+```sh
+    kubectl create secret generic servicenow-mid-webserver-pass -n servicenow --from-literal="password=YOUR_PASSWORD"
 ```
