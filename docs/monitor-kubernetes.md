@@ -1,4 +1,4 @@
-## Monitor Kubernetes with the ServiceNow Collector
+## Monitor Kubernetes with the ServiceNow Collector and CNO
 
 Below are instructions on monitoring one of the following Kubernetes cluster environments with ServiceNow.
 
@@ -16,11 +16,12 @@ Below are instructions on monitoring one of the following Kubernetes cluster env
 
 To monitor the cluster, make sure you have the following before proceeding:
 
+* a ServiceNow Washingtion DC instance with Discovery and Service Mapping Patterns and Agent Client Collector for Visibility version 3.4.0 or higher
 * `helm` v3 installed locally to deploy charts
-* Kubernetes cluster with local access via `kubectl`
-* active workloads running in your cluster (no workloads or a test cluster? [See below for deploying the OpenTelemetry demo](#optional-run-the-opentelemetry-demo))
+* Kubernetes cluster with local access via `kubectl` with at least 6 GB of memory and active workloads running in your cluster (no workloads or a test cluster? [See below for deploying the OpenTelemetry demo](#optional-run-the-opentelemetry-demo))
 * ability to pull from the public Docker image repository `ghcr.io/lightstep/sn-collector`
-* `ClusterRole` 
+* `ClusterRole` permissions in your cluster
+* a ServiceNow user with `discovery_admin`, `evt_admin`, and `mid_server` roles.
 
 #### 1. Add OpenTelemetry and ServiceNow helm repositories
 
@@ -34,7 +35,7 @@ helm repo update
 
 #### 2. Create a ServiceNow namespace
 
-This namespace is where the OpenTelemetry components will live in your cluster.
+This namespace is where the OpenTelemetry and CNO components will live in your cluster.
 
 ```sh
 kubectl create namespace servicenow
@@ -42,43 +43,52 @@ kubectl create namespace servicenow
 
 #### 3. Set credentials
 
-[Visit Cloud Observability docs for instructions](https://docs.lightstep.com/docs/create-and-manage-access-tokens) on generating an access token for your project.
+Multiple instance URLs and credentials are needed to send data to HLA, Event Management, Cloud Observability, and the MID server.
+
+First, set username, password and URL credentials for sending events to Event Management with a user that has the `evt_admin` role. The URL __must__ be network accessible from the cluster. We recommend using the generic event endpoint: `/api/global/em/jsonv2`.
 
 ```sh
-export CLOUDOBS_TOKEN='<your-cloudobs-token>'
-kubectl create secret generic servicenow-cloudobs-token \
-    -n servicenow --from-literal=token=$CLOUDOBS_TOKEN
+    kubectl create configmap servicenow-events -n servicenow --from-literal=url=https://INSTANCE_NAME.service-now.com/api/global/em/jsonv2
+
+    kubectl create secret generic servicenow-events -n servicenow --from-literal=.user=USERNAME --from-literal=.password=PASSWORD 
 ```
 
-(__Optional__) Set URL for Event Manangement. The URL __must__ be network accessible from the cluster. We recommend using the generic event endpoint: `/api/global/em/jsonv2`.
+Next, set the username and password with a user with the `discovery_admin` role for CNO.
 
 ```sh
-export SERVICENOW_EVENTS_URL='https://<your-instance-host/api/global/em/jsonv2'
-kubectl create configmap servicenow-events-url \
-    -n servicenow --from-literal=url=$SERVICENOW_EVENTS_URL
+    kubectl create secret generic k8s-informer-cred-INSTANCE_NAME -n servicenow --from-literal=.user=USERNAME --from-literal=.password=PASSWORD
 ```
 
-(__Optional__)  Set username and password for CNO with a user that has the `discovery_admin` role, replacing `INSTANCE_NAME` with your instance name.
+Next, set the password of the user for the mid server using a file.
+
 ```sh
-kubectl create secret generic k8s-informer-cred-INSTANCE_NAME -n servicenow \
-    --from-literal=.user=USERNAME --from-literal=.password=PASSWORD
+    echo "mid.instance.password=<YOUR_MID_USER_PASSWORD>" > mid.properties
+    kubectl create secret generic servicenow-mid-secret --from-file=mid.properties -n servicenow
 ```
 
-(__Optional__) Set username for Event Manangement:
+Next, set the username and password for the MID **webserver** extension user. Note these are webserver-only basic auth credentials are **different** from your instance user credentials.
+
 ```sh
-export SERVICENOW_EVENTS_USERNAME='your-mid-username'
-kubectl create configmap servicenow-events-user \
-    -n servicenow --from-literal=username=$SERVICENOW_EVENTS_USERNAME
+    kubectl create secret generic servicenow-mid-webserver -n servicenow --from-literal=.user=USERNAME --from-literal=.password=PASSWORD 
 ```
 
-(__Optional__) Set password for Event Manangement:
+Finally, set a Cloud Observability token. [Visit Cloud Observability docs for instructions](https://docs.lightstep.com/docs/create-and-manage-access-tokens) on generating an access token for your project.
+
 ```sh
-export SERVICENOW_EVENTS_PASSWORD='your-mid-user-pw'
-kubectl create secret generic servicenow-events-password \
-    -n servicenow --from-literal="password=$SERVICENOW_EVENTS_PASSWORD"
+kubectl create secret generic servicenow-cloudobs-token -n servicenow --from-literal=token=YOUR_CLOUDOBS_TOKEN
 ```
 
-#### 4. Deploy ServiceNow Collector for Cluster Monitoring and CNO for Visibility
+#### 4. Deploy the MID server and configure Metric Intelligence
+
+```sh
+    # update the template file with your instance name and MID username and create a new manifest file.
+    sed -e 's/__INSTANCE_NAME__/YOUR_INSTANCE_NAME/' -e 's/__USERNAME__/YOUR_USERNAME/' mid-statefulset.yaml > mid.yaml
+    kubectl apply -f mid.yaml
+```
+
+The MID server should appear on your instance after a few minutes. After it does, perform validation, setup metric intelligence and setup a REST Listener in the MI Metric extension.
+
+#### 5. Deploy ServiceNow Collector for Cluster Monitoring and CNO for Visibility
 
 You're now ready to deploy a collector to your cluster to collect cluster-level metrics and events. To preview the generated manifest before deploying, add the `--dry-run` option to the below command:
 
@@ -102,7 +112,7 @@ The pod will deploy after a few seconds, to check status and for errors, run:
 kubectl get pods -n servicenow
 ```
 
-#### 5. Deploy ServiceNow Collector for Node and Workloads Monitoring
+#### 6. Deploy ServiceNow Collector for Node and Workloads Monitoring
 
 Next, deploy collectors to each Kubernetes host to get workload metrics (via Kubelet). To preview the generated manifest before deploying, add the `--dry-run` option to the below command:
 

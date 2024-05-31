@@ -14,38 +14,32 @@ extraEnvs:
   - name: SERVICENOW_EVENTS_URL
     valueFrom:
       configMapKeyRef:
-        name: servicenow-events-url
-        key: url
-        optional: true
-  - name: MID_INSTANCE_METRICS_URL
-    valueFrom:
-      configMapKeyRef:
-        name: servicenow-mid-url
+        name: servicenow-events
         key: url
         optional: true
   - name: MID_WEBSERVER_USER
     valueFrom:
-      configMapKeyRef:
-        name: servicenow-mid-webserver-user
-        key: username
+      secretKeyRef:
+        name: servicenow-mid-webserver
+        key: .user
         optional: true
   - name: MID_WEBSERVER_PASS
     valueFrom:
       secretKeyRef:
-        name: servicenow-mid-webserver-pass
-        key: password
+        name: servicenow-mid-webserver
+        key: .password
         optional: true
   - name: SERVICENOW_EVENTS_USERNAME
     valueFrom:
-      configMapKeyRef:
-        name: servicenow-events-user
-        key: username
+      secretKeyRef:
+        name: servicenow-events
+        key: .user
         optional: true
   - name: SERVICENOW_EVENTS_PASSWORD
     valueFrom:
       secretKeyRef:
-        name: servicenow-events-password
-        key: password
+        name: servicenow-events
+        key: .password
         optional: true
 # We only want one of these collectors - any more and we'd produce duplicate data
 replicaCount: 1
@@ -182,7 +176,7 @@ config:
 
   exporters:
     servicenow/metrics:
-      instance_metrics_url: ${env:MID_INSTANCE_METRICS_URL}
+      instance_metrics_url: http://servicenow-mid:8097/api/mid/sa/metrics
       username: ${env:MID_WEBSERVER_USER}
       password: ${env:MID_WEBSERVER_PASS}
     # Comment out the servicenow/events exporter and

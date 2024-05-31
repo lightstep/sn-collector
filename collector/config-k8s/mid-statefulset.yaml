@@ -104,7 +104,7 @@ spec:
 
         # Put your instance URL here
         - name: MID_CONFIG_url
-          value: https://hlasalesdemo1.service-now.com
+          value: https://__INSTANCE_NAME__.service-now.com
 
         # For instance authentication, you can choose either (A) basic auth or (B) mutual auth (mTLS)
         # If using mTLS, you don't need to provide user name and password. The sensitive data such as password 
@@ -118,9 +118,9 @@ spec:
         #         kubectl create secret generic <YOUR_MID_SECRET_NAME> --from-file=<YOUR_MID_SECRET_PROPERTIES_FILENAME>
         # <MID_SECRET_MOUNT_PATH> is the location where the mid secret volume is mounted to container file system 
         - name: MID_CONFIG_mid__instance__username
-          value: __REPLACE_WITH_YOUR_USERNAME__
+          value: __USERNAME__
         - name: MID_SECRETS_FILE
-          value: /etc/secrets/mid.secret
+          value: /etc/secrets/mid.properties
 
         # Option B: using mutual auth (mTLS)
         # 1. Make sure you have the mutual auth certificate file named <YOUR_MID_MUTUAL_AUTH_PEM_FILENAME> which need to import to the MID Server keystore
