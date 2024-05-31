@@ -33,8 +33,8 @@ func NewFactory() receiver.Factory {
 // createDefaultConfig creates the default configuration for Lightstep receiver.
 func createDefaultConfig() component.Config {
 	return &Config{
-		Protocols: Protocols {
-			HTTP: &HTTPConfig {
+		Protocols: Protocols{
+			HTTP: &HTTPConfig{
 				ServerConfig: &confighttp.ServerConfig{
 					Endpoint: defaultBindEndpoint,
 				},

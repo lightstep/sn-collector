@@ -13,11 +13,11 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/ptrace"
 	"go.opentelemetry.io/collector/receiver"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/lightstep/sn-collector/collector/lightstepreceiver/internal/collectorpb"
 )
@@ -36,7 +36,7 @@ type lightstepReceiver struct {
 	server     *http.Server
 	config     *Config
 
-	settings  receiver.CreateSettings
+	settings receiver.CreateSettings
 }
 
 var _ http.Handler = (*lightstepReceiver)(nil)
@@ -44,9 +44,9 @@ var _ http.Handler = (*lightstepReceiver)(nil)
 // newReceiver creates a new lightstepReceiver reference.
 func newReceiver(config *Config, consumer consumer.Traces, settings receiver.CreateSettings) (*lightstepReceiver, error) {
 	lr := &lightstepReceiver{
-		consumer:                 consumer,
-		config:                   config,
-		settings:                 settings,
+		consumer: consumer,
+		config:   config,
+		settings: settings,
 	}
 	return lr, nil
 }
@@ -132,7 +132,7 @@ func (lr *lightstepReceiver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := &collectorpb.ReportResponse{
-		ReceiveTimestamp: timestamppb.New(receive),
+		ReceiveTimestamp:  timestamppb.New(receive),
 		TransmitTimestamp: timestamppb.New(time.Now()),
 	}
 	bytes, err := proto.Marshal(resp)

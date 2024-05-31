@@ -14,7 +14,7 @@ import (
 
 const (
 	protocolsFieldName = "protocols"
-	protoHTTP = "http"
+	protoHTTP          = "http"
 )
 
 type HTTPConfig struct {
@@ -37,7 +37,7 @@ var _ component.Config = (*Config)(nil)
 // Validate checks the receiver configuration is valid
 func (cfg *Config) Validate() error {
 	if cfg.HTTP == nil {
-		 return errors.New("must specify at least one protocol when using the Lightstep receiver")
+		return errors.New("must specify at least one protocol when using the Lightstep receiver")
 	}
 	return nil
 }

@@ -5,9 +5,11 @@
 Package collectorpb is a generated protocol buffer package.
 
 It is generated from these files:
+
 	lightstep/collector/collector.proto
 
 It has these top-level messages:
+
 	SpanContext
 	KeyValue
 	Log

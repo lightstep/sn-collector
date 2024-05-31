@@ -76,4 +76,3 @@ func TestReceiverPortAlreadyInUse(t *testing.T) {
 	err = traceReceiver.Start(context.Background(), componenttest.NewNopHost())
 	require.Error(t, err)
 }
-

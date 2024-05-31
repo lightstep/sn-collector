@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	InstrumentationScopeName = "lightstep-receiver"
+	InstrumentationScopeName    = "lightstep-receiver"
 	InstrumentationScopeVersion = "0.0.1" // TODO: Use the actual internal version?
 )
 
@@ -121,7 +121,7 @@ func setSpanParents(span ptrace.Span, refs []*collectorpb.Reference) {
 			is_main_parent_set = true
 		} else {
 			link := links.AppendEmpty()
-			link.SetSpanID(UInt64ToSpanID(ref.GetSpanContext().GetSpanId()));
+			link.SetSpanID(UInt64ToSpanID(ref.GetSpanContext().GetSpanId()))
 			link.SetTraceID(UInt64ToTraceID(0, ref.GetSpanContext().GetTraceId()))
 		}
 	}
