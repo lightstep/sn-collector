@@ -57,6 +57,39 @@ func TestTranslateEmptySpans(t *testing.T) {
 	assert.Equal(t, traces, ptrace.NewTraces())
 }
 
+func TestTranslatNoComponentName(t *testing.T) {
+	req := &collectorpb.ReportRequest{
+		Reporter: &collectorpb.Reporter{},
+		Spans: []*collectorpb.Span{
+			{
+				OperationName: "span1",
+			},
+		},
+	}
+	traces, err := ToTraces(req)
+	assert.NoError(t, err)
+	assert.Equal(t, traces, func() ptrace.Traces {
+		td := ptrace.NewTraces()
+		rs := td.ResourceSpans().AppendEmpty()
+
+		r := rs.Resource()
+		rattrs := r.Attributes()
+		rattrs.PutStr("service.name", "unknown_service") // fallback
+
+		sss := rs.ScopeSpans().AppendEmpty()
+		scope := sss.Scope()
+		scope.SetName("lightstep-receiver")
+		scope.SetVersion("0.0.1")
+
+		spans := sss.Spans()
+		span1 := spans.AppendEmpty()
+		span1.SetName("span1")
+
+		return td
+	}())
+
+}
+
 func TestAttributes(t *testing.T) {
 	req := &collectorpb.ReportRequest{
 		Reporter: &collectorpb.Reporter{
