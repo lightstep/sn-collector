@@ -64,7 +64,7 @@ func translateToSpan(lspan *collectorpb.Span, span ptrace.Span, offset time.Dura
 	span.SetStartTimestamp(pcommon.NewTimestampFromTime(startt.Add(offset)))
 	span.SetEndTimestamp(pcommon.NewTimestampFromTime(startt.Add(duration).Add(offset)))
 
-	// We store our ids using the left-most part of TraceID.
+	// Legacy tracers use TraceIds of only 64 bit length.
 	span.SetTraceID(UInt64ToTraceID(0, lspan.GetSpanContext().GetTraceId()))
 	span.SetSpanID(UInt64ToSpanID(lspan.GetSpanContext().GetSpanId()))
 	setSpanParents(span, lspan.GetReferences())

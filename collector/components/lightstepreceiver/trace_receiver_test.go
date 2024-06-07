@@ -146,7 +146,7 @@ func createHttpRequest(addr string, req *collectorpb.ReportRequest) (*http.Reque
 		return nil, err
 	}
 
-	request.Header.Set("Content-Type", ContentTypeOctetStream)
+	request.Header.Set(ContentType, ContentTypeOctetStream)
 	request.Header.Set("Accept", ContentTypeOctetStream)
 
 	return request, nil

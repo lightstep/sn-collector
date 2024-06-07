@@ -23,6 +23,7 @@ import (
 )
 
 const (
+	ContentType            = "Content-Type"
 	ContentTypeOctetStream = "application/octet-stream"
 )
 
@@ -143,6 +144,6 @@ func (lr *lightstepReceiver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Finally send back the response "Accepted"
 	w.WriteHeader(http.StatusAccepted)
-	w.Header().Set("Content-Type", ContentTypeOctetStream)
+	w.Header().Set(ContentType, ContentTypeOctetStream)
 	w.Write(bytes)
 }
