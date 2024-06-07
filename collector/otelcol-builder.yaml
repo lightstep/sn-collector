@@ -36,6 +36,8 @@ processors:
   - gomod:
       github.com/open-telemetry/opentelemetry-collector-contrib/processor/k8sattributesprocessor v0.98.0
   - gomod:
+      github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.98.0
+  - gomod:
       github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.98.0
 
 receivers:

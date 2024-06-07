@@ -10,23 +10,36 @@ extraEnvs:
       secretKeyRef:
         name: servicenow-cloudobs-token
         key: token
+        optional: true
   - name: SERVICENOW_EVENTS_URL
     valueFrom:
       configMapKeyRef:
-        name: servicenow-events-url
+        name: servicenow-events
         key: url
+        optional: true
+  - name: MID_WEBSERVER_USER
+    valueFrom:
+      secretKeyRef:
+        name: servicenow-mid-webserver
+        key: .user
+        optional: true
+  - name: MID_WEBSERVER_PASS
+    valueFrom:
+      secretKeyRef:
+        name: servicenow-mid-webserver
+        key: .password
         optional: true
   - name: SERVICENOW_EVENTS_USERNAME
     valueFrom:
-      configMapKeyRef:
-        name: servicenow-events-user
-        key: username
+      secretKeyRef:
+        name: servicenow-events
+        key: .user
         optional: true
   - name: SERVICENOW_EVENTS_PASSWORD
     valueFrom:
       secretKeyRef:
-        name: servicenow-events-password
-        key: password
+        name: servicenow-events
+        key: .password
         optional: true
 # We only want one of these collectors - any more and we'd produce duplicate data
 replicaCount: 1
@@ -162,6 +175,10 @@ config:
             - set(severity_number, SEVERITY_NUMBER_WARN) where attributes["type"] == "Warning"
 
   exporters:
+    servicenow/metrics:
+      instance_metrics_url: http://servicenow-mid:8097/api/mid/sa/metrics
+      username: ${env:MID_WEBSERVER_USER}
+      password: ${env:MID_WEBSERVER_PASS}
     # Comment out the servicenow/events exporter and
     # remove from service pipeline if using the -contrib build of the collector
     servicenow/events:
@@ -203,13 +220,13 @@ config:
       metrics/collector-monitoring:
         receivers: [prometheus]
         processors: [k8sattributes, concurrentbatch]
-        exporters: [debug, otlp/cloudobs]
+        exporters: [debug]
       metrics:
         processors: [k8sattributes, concurrentbatch]
-        exporters: [debug, otlp/cloudobs]
+        exporters: [debug, servicenow/metrics]
       logs:
         processors: [k8sattributes, transform/events, concurrentbatch]
-        exporters: [debug, otlp/cloudobs, servicenow/events]
+        exporters: [debug, servicenow/events]
 
 ports:
   jaeger-compact:
