@@ -71,6 +71,7 @@ The following tables represent the supported components of the ServiceNow Collec
 | k8sobjects                                                       | [contrib][1]                 |
 | k8scluster                                                       | [contrib][1]                 |
 | kubeletstats                                                     | [contrib][1]                 |
+| `lightstepreceiver`                                              | under development            |
 | filelog                                                          | [contrib][1]                 |
 | httpcheck                                                        | [contrib][1]                 |
 | `azuremonitor`*                                                  | [contrib][1]                 |
