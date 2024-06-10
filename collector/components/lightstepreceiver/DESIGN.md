@@ -27,7 +27,7 @@ This receiver exposes *very* basic functionality, with only http/protobuf suppor
 
 ## TODO
 
-* Implement OBSReport.
+* Use `receiverhelper` mechanism for standard component observability signals.
 * Legacy tracers send payloads using the `application/octet-stream` content type and using the
   `/api/v2/reports` path. We don't check for it but worth verifying this (at least the
   content-type).
