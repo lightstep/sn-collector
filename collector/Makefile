@@ -38,7 +38,7 @@ install-tools: install-builder
 
 .PHONY: install-builder - Install the builder
 install-builder:
-	go install "go.opentelemetry.io/collector/cmd/builder@v0.98.0"
+	go install "go.opentelemetry.io/collector/cmd/builder@v0.102.1"
 
 .PHONY: docker - Build docker image
 docker:
