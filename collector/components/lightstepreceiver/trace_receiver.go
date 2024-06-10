@@ -53,19 +53,19 @@ func newReceiver(config *Config, consumer consumer.Traces, settings receiver.Cre
 }
 
 // Start spins up the receiver's HTTP server and makes the receiver start its processing.
-func (lr *lightstepReceiver) Start(_ context.Context, host component.Host) error {
+func (lr *lightstepReceiver) Start(ctx context.Context, host component.Host) error {
 	if host == nil {
 		return errors.New("nil host")
 	}
 
 	var err error
-	lr.server, err = lr.config.HTTP.ToServer(host, lr.settings.TelemetrySettings, lr)
+	lr.server, err = lr.config.HTTP.ToServer(ctx, host, lr.settings.TelemetrySettings, lr)
 	if err != nil {
 		return err
 	}
 
 	var listener net.Listener
-	listener, err = lr.config.HTTP.ToListener()
+	listener, err = lr.config.HTTP.ToListener(ctx)
 	if err != nil {
 		return err
 	}
