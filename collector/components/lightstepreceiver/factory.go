@@ -24,7 +24,7 @@ const (
 // NewFactory creates a new Lightstep receiver factory
 func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
-		component.MustNewType(metadata.Type),
+		metadata.Type,
 		createDefaultConfig,
 		receiver.WithTraces(createTracesReceiver, metadata.TracesStability),
 	)

@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
@@ -19,6 +18,7 @@ import (
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/pdata/ptrace"
 	"go.opentelemetry.io/collector/receiver/receivertest"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/lightstep/sn-collector/collector/lightstepreceiver/internal/collectorpb"
 )
@@ -82,6 +82,8 @@ func TestReceiverPortAlreadyInUse(t *testing.T) {
 	require.NoError(t, err, "Failed to create receiver: %v", err)
 	err = traceReceiver.Start(context.Background(), componenttest.NewNopHost())
 	require.Error(t, err)
+
+	t.Cleanup(func() { require.NoError(t, traceReceiver.Shutdown(context.Background())) })
 }
 
 func TestSimpleRequest(t *testing.T) {
@@ -110,6 +112,7 @@ func TestSimpleRequest(t *testing.T) {
 	httpResp, err := client.Do(httpReq)
 	require.NoError(t, err)
 	require.Equal(t, httpResp.StatusCode, 202)
+	httpResp.Body.Close()
 
 	traces := sink.AllTraces()
 	assert.Equal(t, len(traces), 1)
@@ -132,6 +135,8 @@ func TestSimpleRequest(t *testing.T) {
 		span1.SetName("span1")
 		return td
 	}())
+
+	client.CloseIdleConnections()
 }
 
 func createHttpRequest(addr string, req *collectorpb.ReportRequest) (*http.Request, error) {

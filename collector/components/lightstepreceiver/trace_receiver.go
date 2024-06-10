@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/ptrace"
@@ -20,6 +19,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/lightstep/sn-collector/collector/lightstepreceiver/internal/collectorpb"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -35,6 +35,7 @@ type lightstepReceiver struct {
 
 	shutdownWG sync.WaitGroup
 	server     *http.Server
+	listener   net.Listener
 	config     *Config
 
 	settings receiver.CreateSettings
@@ -64,8 +65,7 @@ func (lr *lightstepReceiver) Start(ctx context.Context, host component.Host) err
 		return err
 	}
 
-	var listener net.Listener
-	listener, err = lr.config.HTTP.ToListener(ctx)
+	lr.listener, err = lr.config.HTTP.ToListener(ctx)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func (lr *lightstepReceiver) Start(ctx context.Context, host component.Host) err
 	go func() {
 		defer lr.shutdownWG.Done()
 
-		if errHTTP := lr.server.Serve(listener); !errors.Is(errHTTP, http.ErrServerClosed) && errHTTP != nil {
+		if errHTTP := lr.server.Serve(lr.listener); !errors.Is(errHTTP, http.ErrServerClosed) && errHTTP != nil {
 			lr.settings.TelemetrySettings.ReportStatus(component.NewFatalErrorEvent(errHTTP))
 		}
 	}()
@@ -88,6 +88,9 @@ func (lr *lightstepReceiver) Shutdown(context.Context) error {
 	var err error
 	if lr.server != nil {
 		err = lr.server.Close()
+	}
+	if lr.listener != nil {
+		_ = lr.listener.Close()
 	}
 	lr.shutdownWG.Wait()
 	return err

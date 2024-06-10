@@ -379,7 +379,7 @@ func TestTimestampOffset(t *testing.T) {
 			},
 		},
 		// Important parameter.
-		TimestampOffsetMicros: int32(offset.Microseconds()),
+		TimestampOffsetMicros: offset.Microseconds(),
 		Spans: []*collectorpb.Span{
 			{
 				OperationName:  "span1",

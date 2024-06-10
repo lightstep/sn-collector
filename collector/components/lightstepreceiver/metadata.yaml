@@ -9,3 +9,9 @@ status:
   - contrib
   codeowners:
     active: [carlosalberto]
+
+tests:
+  config:
+    protocols:
+      http:
+        endpoint: 127.0.0.1:4318
