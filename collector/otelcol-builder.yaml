@@ -15,9 +15,8 @@ exporters:
       go.opentelemetry.io/collector/exporter/otlpexporter v0.102.1
   - gomod:
       github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter v0.102.0
-  - gomod: "github.com/lightstep/sn-collector/collector/servicenowexporter v0.0.1"
-    name: "servicenowexporter"
-    path: "./components/servicenowexporter"
+  - gomod:
+      github.com/lightstep/sn-collector/collector/servicenowexporter v0.0.0
   - gomod:
       github.com/open-telemetry/otel-arrow/collector/exporter/otelarrowexporter v0.24.0
 
@@ -77,3 +76,8 @@ extensions:
        github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.102.0
    - gomod:
        github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.102.0
+
+replaces:
+  # This path is relative to the output_path working directory shown above, not this file's location.
+  - github.com/lightstep/sn-collector/collector/servicenowexporter v0.0.0 => ../components/servicenowexporter
+       
