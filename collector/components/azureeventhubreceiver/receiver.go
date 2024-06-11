@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azeventhubs"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -17,6 +16,7 @@ import (
 	"go.opentelemetry.io/collector/receiver/receiverhelper"
 	"go.uber.org/zap"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azeventhubs"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azureeventhubreceiver/internal/metadata"
 )
 

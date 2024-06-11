@@ -12,13 +12,11 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azeventhubs"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azeventhubs/checkpoints"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/receiver"
 	"go.uber.org/zap"
-)
-
-const (
-	batchCount = 100
 )
 
 type eventHandler interface {
@@ -40,11 +38,7 @@ type consumerClientWrapperImpl struct {
 }
 
 func newConsumerClientWrapperImplementation(cfg *Config) (*consumerClientWrapperImpl, error) {
-	splits := strings.Split(cfg.Connection, "/")
-	eventhubName := splits[len(splits)-1]
-	// if that didn't work it's ok as the SDK will try to parse it to create the client
-
-	consumerClient, err := azeventhubs.NewConsumerClientFromConnectionString(cfg.Connection, eventhubName, cfg.ConsumerGroup, nil)
+	consumerClient, err := azeventhubs.NewConsumerClientFromConnectionString(cfg.Connection, cfg.EventHubName, cfg.ConsumerGroup, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +55,7 @@ func (c *consumerClientWrapperImpl) GetPartitionProperties(ctx context.Context, 
 	return c.consumerClient.GetPartitionProperties(ctx, partitionID, options)
 }
 
-func (c *consumerClientWrapperImpl) NewConsumer(_ context.Context, _ *azeventhubs.ConsumerClientOptions) (*azeventhubs.ConsumerClient, error) {
+func (c *consumerClientWrapperImpl) NewConsumer(ctx context.Context, options *azeventhubs.ConsumerClientOptions) (*azeventhubs.ConsumerClient, error) {
 	return c.consumerClient, nil
 }
 
@@ -74,6 +68,7 @@ func (c *consumerClientWrapperImpl) Close(ctx context.Context) error {
 }
 
 type eventhubHandler struct {
+	processor      *azeventhubs.Processor
 	consumerClient consumerClientWrapper
 	dataConsumer   dataConsumer
 	config         *Config
@@ -94,7 +89,7 @@ func newEventhubHandler(config *Config, settings receiver.CreateSettings) *event
 	return &eventhubHandler{
 		config:       config,
 		settings:     settings,
-		useProcessor: true,
+		useProcessor: false,
 	}
 }
 
@@ -109,33 +104,25 @@ func (h *eventhubHandler) init(ctx context.Context) error {
 }
 
 func (h *eventhubHandler) run(ctx context.Context, host component.Host) error {
-	ctx, h.cancel = context.WithCancel(ctx)
 	if h.useProcessor {
-		return h.runWithProcessor(ctx, host)
+		return h.runWithProcessor(ctx)
 	}
 	return h.runWithConsumerClient(ctx, host)
 }
-func (h *eventhubHandler) runWithProcessor(ctx context.Context, host component.Host) error {
-	checkpointStore, err := createCheckpointStore(ctx, host, h.config, h.settings)
+
+func (h *eventhubHandler) runWithProcessor(ctx context.Context) error {
+	checkpointStore, err := createCheckpointStore(h.config.StorageConnection, h.config.StorageContainer)
 	if err != nil {
-		h.settings.Logger.Debug("Error creating CheckpointStore", zap.Error(err))
 		return err
 	}
 
-	consumerClientImpl, ok := h.consumerClient.(*consumerClientWrapperImpl)
-	if !ok {
-		// we're in a testing environment
-		return nil
-	}
-
-	processor, err := azeventhubs.NewProcessor(consumerClientImpl.consumerClient, checkpointStore, nil)
+	processor, err := azeventhubs.NewProcessor(h.consumerClient.(*consumerClientWrapperImpl).consumerClient, checkpointStore, nil)
 	if err != nil {
-		h.settings.Logger.Debug("Error creating Processor", zap.Error(err))
 		return err
 	}
 
-	processorCtx, processorCancel := context.WithCancel(ctx)
 	go h.dispatchPartitionClients(processor)
+	processorCtx, processorCancel := context.WithCancel(ctx)
 	defer processorCancel()
 
 	return processor.Run(processorCtx)
@@ -166,7 +153,7 @@ func (h *eventhubHandler) processEventsForPartition(partitionClient *azeventhubs
 
 	for {
 		receiveCtx, cancelReceive := context.WithTimeout(context.TODO(), time.Minute)
-		events, err := partitionClient.ReceiveEvents(receiveCtx, 100, nil)
+		events, err := partitionClient.ReceiveEvents(receiveCtx, h.config.BatchCount, nil)
 		cancelReceive()
 
 		if err != nil && !errors.Is(err, context.DeadlineExceeded) {
@@ -193,7 +180,7 @@ func (h *eventhubHandler) processEventsForPartition(partitionClient *azeventhubs
 	}
 }
 
-func (h *eventhubHandler) runWithConsumerClient(ctx context.Context, _ component.Host) error {
+func (h *eventhubHandler) runWithConsumerClient(ctx context.Context, host component.Host) error {
 	if h.consumerClient == nil {
 		if err := h.init(ctx); err != nil {
 			return err
@@ -231,7 +218,11 @@ func (h *eventhubHandler) setupPartition(ctx context.Context, partitionID string
 	if cc == nil {
 		return errors.New("failed to initialize consumer client")
 	}
-	defer cc.Close(ctx)
+	defer func() {
+		if cc != nil {
+			cc.Close(ctx)
+		}
+	}()
 
 	pcOpts := &azeventhubs.PartitionClientOptions{
 		StartPosition: azeventhubs.StartPosition{
@@ -258,12 +249,15 @@ func (h *eventhubHandler) setupPartition(ctx context.Context, partitionID string
 }
 
 func (h *eventhubHandler) receivePartitionEvents(ctx context.Context, pc *azeventhubs.PartitionClient) {
+	var wait = 1
 	for {
-		rcvCtx, rcvCtxCancel := context.WithTimeout(context.TODO(), time.Second*10)
-		events, err := pc.ReceiveEvents(rcvCtx, batchCount, nil)
-		rcvCtxCancel()
-		if err != nil && !errors.Is(err, context.DeadlineExceeded) {
-			h.settings.Logger.Error("Error receiving events", zap.Error(err))
+		rcvCtx, _ := context.WithTimeout(context.TODO(), time.Second*10)
+		events, err := pc.ReceiveEvents(rcvCtx, h.config.BatchCount, nil)
+		if err != nil {
+			h.settings.Logger.Error("Error receiving event", zap.Error(err))
+			time.Sleep(time.Duration(wait) * time.Second)
+			wait *= 2
+			continue
 		}
 
 		for _, event := range events {
@@ -296,4 +290,12 @@ func (h *eventhubHandler) close(ctx context.Context) error {
 
 func (h *eventhubHandler) setDataConsumer(dataConsumer dataConsumer) {
 	h.dataConsumer = dataConsumer
+}
+
+func createCheckpointStore(storageConnectionString, containerName string) (azeventhubs.CheckpointStore, error) {
+	azBlobContainerClient, err := container.NewClientFromConnectionString(storageConnectionString, containerName, nil)
+	if err != nil {
+		return nil, err
+	}
+	return checkpoints.NewBlobStore(azBlobContainerClient, nil)
 }
