@@ -67,14 +67,6 @@ func (c *consumerClientWrapperImpl) Close(ctx context.Context) error {
 	return c.consumerClient.Close(ctx)
 }
 
-// type processorHandler struct {
-// 	processor    *azeventhubs.Processor
-// 	dataConsumer dataConsumer
-// 	config       *Config
-// 	settings     receiver.CreateSettings
-// 	cancel       context.CancelFunc
-// }
-
 type eventhubHandler struct {
 	processor      *azeventhubs.Processor
 	consumerClient consumerClientWrapper
@@ -92,9 +84,6 @@ func newEventhubHandler(config *Config, settings receiver.CreateSettings) *event
 	// Check if the configuration is meant for testing. This can be done by checking a specific field or a pattern in the connection string.
 	if strings.Contains(config.Connection, "fake.servicebus.windows.net") {
 		return nil
-		// Return a mock handler if the connection string is empty or obviously fake.
-		// return newMockEventhubHandler()
-		// return newMockEventhubHandler(config, settings)
 	}
 
 	return &eventhubHandler{
