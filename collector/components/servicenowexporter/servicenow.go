@@ -202,7 +202,17 @@ func (e *serviceNowProducer) writeNumberDataPoints(metricName string, scope stri
 func ci2metricAttrs(rAttrs pcommon.Map) map[string]string {
 	attrs := make(map[string]string)
 	rAttrs.Range(func(k string, v pcommon.Value) bool {
-		attrs[k] = v.AsString()
+		if v.Type() == pcommon.ValueTypeStr {
+			attrs[k] = v.AsString()
+		}
+		if v.Type() == pcommon.ValueTypeMap {
+			v.Map().Range(func(k2 string, v2 pcommon.Value) bool {
+				if v2.Type() == pcommon.ValueTypeStr {
+					attrs[k+"."+k2] = v2.AsString()
+				}
+				return true
+			})
+		}
 		return true
 	})
 	return attrs
@@ -347,6 +357,9 @@ func buildPath(name string, attributes pcommon.Map) string {
 
 	buf.WriteString(name)
 	attributes.Range(func(k string, v pcommon.Value) bool {
+		if v.Type() != pcommon.ValueTypeStr {
+			return true
+		}
 		value := v.AsString()
 		if value == "" {
 			value = tagValueEmptyPlaceholder
