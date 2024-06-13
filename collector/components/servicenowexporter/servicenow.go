@@ -3,7 +3,6 @@ package servicenowexporter
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -362,7 +361,7 @@ func buildPath(name string, attributes pcommon.Map) string {
 	return buf.String()
 }
 
-func formatAdditionalInfo(attrs map[string]string, resourceAttrs map[string]string) (string, error) {
+func formatAdditionalInfo(attrs map[string]string, resourceAttrs map[string]string) (map[string]string, error) {
 	// merge attrs + resource attrs
 	newAttrs := make(map[string]string)
 	for k, v := range resourceAttrs {
@@ -383,11 +382,7 @@ func formatAdditionalInfo(attrs map[string]string, resourceAttrs map[string]stri
 		newAttrs[k] = v
 	}
 
-	bytes, err := json.Marshal(newAttrs)
-	if err != nil {
-		return "", err
-	}
-	return string(bytes), nil
+	return newAttrs, nil
 }
 
 func formatNode(resourceAttrs map[string]string) string {
