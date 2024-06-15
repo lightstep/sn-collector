@@ -45,29 +45,31 @@ func (c *midClient) Close() {
 	c.httpClient.CloseIdleConnections()
 }
 
-func (c *midClient) sendEvents(payload []ServiceNowEvent) error {
+func (c *midClient) sendEvents(events []ServiceNowEvent) error {
 	url := c.config.PushEventsURL
-	request := ServiceNowEventRequestBody{Records: payload}
-	c.logger.Info("Sending events to ServiceNow", zap.String("url", url), zap.Any("request", request))
-	body, err := json.Marshal(request)
-	if err != nil {
-		return err
-	}
-	r, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-	r.Header.Set("Content-Type", "application/json")
-	r.SetBasicAuth(c.config.Username, string(c.config.Password))
 
-	res, err := c.httpClient.Do(r)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
+	for e := range events {
+		c.logger.Info("Sending event to ServiceNow", zap.String("url", url), zap.Any("event", e))
+		body, err := json.Marshal(e)
+		if err != nil {
+			return err
+		}
+		r, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+		if err != nil {
+			return err
+		}
+		r.Header.Set("Content-Type", "application/json")
+		r.SetBasicAuth(c.config.Username, string(c.config.Password))
 
-	if res.StatusCode != 200 {
-		return handleNon200Response(res)
+		res, err := c.httpClient.Do(r)
+		if err != nil {
+			return err
+		}
+		defer res.Body.Close()
+
+		if res.StatusCode != 200 {
+			handleNon200Response(res)
+		}
 	}
 
 	return nil

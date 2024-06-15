@@ -1,9 +1,5 @@
 package servicenowexporter
 
-type ServiceNowEventRequestBody struct {
-	Records []ServiceNowEvent `json:"records"`
-}
-
 // https://docs.servicenow.com/bundle/vancouver-it-operations-management/page/product/event-management/task/send-events-via-web-service.html
 type ServiceNowEvent struct {
 	// The resource on the node impacted
