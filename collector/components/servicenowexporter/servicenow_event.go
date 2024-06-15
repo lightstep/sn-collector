@@ -1,9 +1,5 @@
 package servicenowexporter
 
-type ServiceNowEventRequestBody struct {
-	Records []ServiceNowEvent `json:"records"`
-}
-
 // https://docs.servicenow.com/bundle/vancouver-it-operations-management/page/product/event-management/task/send-events-via-web-service.html
 type ServiceNowEvent struct {
 	// The resource on the node impacted
@@ -15,6 +11,6 @@ type ServiceNowEvent struct {
 	Description string `json:"description"`
 	Timestamp   string `json:"time_of_event"` // yyyy-MM-dd HH:mm:ss
 	// k8s.cluster.name:test-cluster,k8s.cluster.uid=12345
-	AdditionalInfo string `json:"additional_info,omitempty"` // actually a json string
-	Source         string `json:"source"`
+	AdditionalInfo map[string]string `json:"additional_info,omitempty"` // actually a json string
+	Source         string            `json:"source"`
 }

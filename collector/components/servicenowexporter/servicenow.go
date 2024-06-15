@@ -3,7 +3,6 @@ package servicenowexporter
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -203,7 +202,17 @@ func (e *serviceNowProducer) writeNumberDataPoints(metricName string, scope stri
 func ci2metricAttrs(rAttrs pcommon.Map) map[string]string {
 	attrs := make(map[string]string)
 	rAttrs.Range(func(k string, v pcommon.Value) bool {
-		attrs[k] = v.AsString()
+		if v.Type() == pcommon.ValueTypeStr {
+			attrs[k] = v.AsString()
+		}
+		if v.Type() == pcommon.ValueTypeMap {
+			v.Map().Range(func(k2 string, v2 pcommon.Value) bool {
+				if v2.Type() == pcommon.ValueTypeStr {
+					attrs[k+"."+k2] = v2.AsString()
+				}
+				return true
+			})
+		}
 		return true
 	})
 	return attrs
@@ -348,6 +357,9 @@ func buildPath(name string, attributes pcommon.Map) string {
 
 	buf.WriteString(name)
 	attributes.Range(func(k string, v pcommon.Value) bool {
+		if v.Type() != pcommon.ValueTypeStr {
+			return true
+		}
 		value := v.AsString()
 		if value == "" {
 			value = tagValueEmptyPlaceholder
@@ -362,7 +374,7 @@ func buildPath(name string, attributes pcommon.Map) string {
 	return buf.String()
 }
 
-func formatAdditionalInfo(attrs map[string]string, resourceAttrs map[string]string) (string, error) {
+func formatAdditionalInfo(attrs map[string]string, resourceAttrs map[string]string) (map[string]string, error) {
 	// merge attrs + resource attrs
 	newAttrs := make(map[string]string)
 	for k, v := range resourceAttrs {
@@ -383,11 +395,7 @@ func formatAdditionalInfo(attrs map[string]string, resourceAttrs map[string]stri
 		newAttrs[k] = v
 	}
 
-	bytes, err := json.Marshal(newAttrs)
-	if err != nil {
-		return "", err
-	}
-	return string(bytes), nil
+	return newAttrs, nil
 }
 
 func formatNode(resourceAttrs map[string]string) string {
