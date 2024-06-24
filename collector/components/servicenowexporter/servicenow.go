@@ -117,7 +117,7 @@ func (e *serviceNowProducer) logDataPusher(_ context.Context, md plog.Logs) erro
 		return nil
 	}
 
-	e.logger.Info("Sending events to instance...", zap.Any("events", snEvents))
+	e.logger.Info("Sending events to instance...", zap.Int("eventCount", len(snEvents)))
 	err := e.client.sendEvents(snEvents)
 	if err != nil {
 		e.logger.Error("Failed to send events to MID Server", zap.Int("logCount", len(snEvents)), zap.Error(err))
