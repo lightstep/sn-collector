@@ -48,7 +48,7 @@ func (c *midClient) Close() {
 func (c *midClient) sendEvents(events []ServiceNowEvent) error {
 	url := c.config.PushEventsURL
 
-	for e := range events {
+	for _, e := range events {
 		c.logger.Info("Sending event to ServiceNow", zap.String("url", url), zap.Any("event", e))
 		body, err := json.Marshal(e)
 		if err != nil {
