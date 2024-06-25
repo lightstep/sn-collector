@@ -11,6 +11,12 @@ extraEnvs:
         name: servicenow-cloudobs-token
         key: token
         optional: true
+  - name: K8S_CLUSTER_NAME
+    valueFrom:
+      configMapKeyRef:
+        name: cluster-info
+        key: name
+        optional: true
   - name: SERVICENOW_EVENTS_URL
     valueFrom:
       configMapKeyRef:
@@ -41,6 +47,9 @@ extraEnvs:
         name: servicenow-events
         key: .password
         optional: true
+  - name: OTEL_RESOURCE_ATTRIBUTES
+    value: "k8s.cluster.name=$(K8S_CLUSTER_NAME)"
+
 # We only want one of these collectors - any more and we'd produce duplicate data
 replicaCount: 1
 
@@ -145,6 +154,10 @@ config:
       detectors: [env, aks]
       timeout: 2s
       override: false
+    resourcedetection/env:
+      detectors: [env]
+      timeout: 2s
+      override: false
     batch:
       send_batch_size: 1000
       send_batch_max_size: 1500
@@ -220,13 +233,13 @@ config:
       metrics/collector-monitoring:
         receivers: [prometheus]
         processors: [k8sattributes, concurrentbatch]
-        exporters: [debug]
+        exporters: [debug, otlp/cloudobs]
       metrics:
-        processors: [k8sattributes, concurrentbatch]
-        exporters: [debug, servicenow/metrics]
+        processors: [k8sattributes, resourcedetection/env, concurrentbatch]
+        exporters: [debug, servicenow/metrics, otlp/cloudobs]
       logs:
-        processors: [k8sattributes, transform/events, concurrentbatch]
-        exporters: [debug, servicenow/events]
+        processors: [k8sattributes, resourcedetection/env, transform/events, concurrentbatch]
+        exporters: [debug, servicenow/events, otlp/cloudobs]
 
 ports:
   jaeger-compact:
