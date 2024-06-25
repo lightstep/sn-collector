@@ -90,12 +90,16 @@ The MID server should appear on your instance after a few minutes. After it does
 
 #### 5. Deploy ServiceNow Collector for Cluster Monitoring and CNO for Visibility
 
+ServiceNow CMDB generally requires a Kubernetes cluster name to be set. Since this varies depending on the type of cluster, set the name manually in a configuration map:
+
+```sh
+    kubectl create configmap cluster-info -n servicenow --from-literal=name=YOUR_CLUSTER_NAME
+```
+
 You're now ready to deploy a collector to your cluster to collect cluster-level metrics and events. To preview the generated manifest before deploying, add the `--dry-run` option to the below command:
 
 ```sh
-helm upgrade otel-collector-cluster open-telemetry/opentelemetry-collector \ 
-    --install --namespace servicenow \
-    --values https://raw.githubusercontent.com/lightstep/sn-collector/main/collector/config-k8s/values-cluster.yaml
+helm upgrade otel-collector-cluster open-telemetry/opentelemetry-collector --install --namespace servicenow --values https://raw.githubusercontent.com/lightstep/sn-collector/main/collector/config-k8s/values-cluster.yaml
 ```
 
 Next, install CNO for visibility. Additional install instructions for CNO are on the ServiceNow documentation [portal](https://docs.servicenow.com/bundle/washingtondc-it-operations-management/page/product/cloud-native-operations-visibility/task/cnov-deploy-install.html). By sending `Y` you accept the terms and conditions of ServiceNow CNO.
@@ -117,10 +121,7 @@ kubectl get pods -n servicenow
 Next, deploy collectors to each Kubernetes host to get workload metrics (via Kubelet). To preview the generated manifest before deploying, add the `--dry-run` option to the below command:
 
 ```sh
-helm upgrade otel-collector \
-    open-telemetry/opentelemetry-collector \
-    --install --namespace servicenow \
-    --values https://raw.githubusercontent.com/lightstep/sn-collector/main/collector/config-k8s/values-node.yaml
+helm upgrade otel-collector open-telemetry/opentelemetry-collector --install --namespace servicenow --values https://raw.githubusercontent.com/lightstep/sn-collector/main/collector/config-k8s/values-node.yaml
 ```
 
 #### 6. See events in ServiceNow

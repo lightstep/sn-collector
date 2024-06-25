@@ -22,6 +22,12 @@ extraEnvs:
       secretKeyRef:
         name: servicenow-cloudobs-token
         key: token
+  - name: K8S_CLUSTER_NAME
+    valueFrom:
+      configMapKeyRef:
+        name: cluster-info
+        key: name
+        optional: true
   - name: K8S_NODE_NAME
     valueFrom:
       fieldRef:
@@ -46,7 +52,7 @@ extraEnvs:
         apiVersion: v1
         fieldPath: metadata.uid
   - name: OTEL_RESOURCE_ATTRIBUTES
-    value: "k8s.node.name=$(K8S_NODE_NAME)"
+    value: "k8s.node.name=$(K8S_NODE_NAME),k8s.cluster.name=$(K8S_CLUSTER_NAME)"
 
 presets:
   # enables the k8sattributesprocessor and adds it to the traces, metrics, and logs pipelines
@@ -218,16 +224,16 @@ config:
     pipelines:
       traces:
         receivers: [otlp]
-        processors: [k8sattributes, concurrentbatch]
+        processors: [k8sattributes, resourcedetection/env, concurrentbatch]
         exporters: [debug, otlp/cloudobs]
       metrics:
         receivers: [otlp, prometheus, hostmetrics, kubeletstats]
-        processors: [k8sattributes, concurrentbatch]
+        processors: [k8sattributes, resourcedetection/env, concurrentbatch]
         exporters: [debug, otlp/cloudobs]
       logs:
         receivers: [otlp, filelog]
-        processors: [k8sattributes, concurrentbatch]
-        exporters: [debug, otelarrow/cloudobs]
+        processors: [k8sattributes, resourcedetection/env, concurrentbatch]
+        exporters: [debug, otlp/cloudobs]
 
 ports:
   jaeger-compact:
