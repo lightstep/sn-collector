@@ -1,0 +1,9 @@
+[
+    {
+        "args": [
+            ""
+        ],
+        "exec": "otel-metrics.rb",
+        "skip_arguments": true
+    }
+]
