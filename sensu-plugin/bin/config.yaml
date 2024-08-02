@@ -1,7 +1,7 @@
 receivers:
   hostmetrics:
-    collection_interval: 15s
-    # partial list of possible metric scrapers
+    collection_interval: 10s
+    # partial list of possible scraperss
     scrapers:
       cpu:
       memory:
@@ -15,7 +15,6 @@ processors:
     timeout: 5s
   metricstransform/addhost:
     transforms:
-      # Requires the HOSTNAME env var to be set when running the collector
       - include: (.*)
         match_type: regexp
         action: update
@@ -24,11 +23,14 @@ processors:
     detectors: [env,system]
 
 exporters:
-  carbon/hostmetrics:
-    endpoint: "localhost:2003"  # The address of the Carbon/Graphite server
-    timeout: 10s
-    retry_on_failure:
-      enabled: false
+  prometheus:
+    endpoint: "localhost:9090"
+    # TODO: should this be used?
+    # namespace: test-space
+    send_timestamps: true
+    metric_expiration: 180m
+    enable_open_metrics: true
+    add_metric_suffixes: false
     resource_to_telemetry_conversion:
       enabled: false
 
@@ -36,8 +38,8 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [batch, resourcedetection, metricstransform/addhost]
-      exporters: [carbon/hostmetrics]
+      processors: [batch, metricstransform/addhost, resourcedetection]
+      exporters: [prometheus]
 
 extensions:
   health_check:
