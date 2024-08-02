@@ -8,7 +8,7 @@ require 'timeout'
 
 PORT = 2003
 HOST = '0.0.0.0'
-TIMEOUT = 15
+TIMEOUT = 30
 
 # TODO: run the collector binary / check if it's running.
 

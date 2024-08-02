@@ -1,33 +1,43 @@
 receivers:
   hostmetrics:
-    collection_interval: 10s
+    collection_interval: 15s
+    # partial list of possible metric scrapers
     scrapers:
       cpu:
       memory:
       disk:
-      filesystem:
       load:
       network:
-      paging:
       processes:
 
 processors:
   batch:
     timeout: 5s
+  metricstransform/addhost:
+    transforms:
+      # Requires the HOSTNAME env var to be set when running the collector
+      - include: (.*)
+        match_type: regexp
+        action: update
+        new_name: ${env:HOSTNAME}.$${0}
   resourcedetection:
     detectors: [env,system]
 
 exporters:
-  carbon:
+  carbon/hostmetrics:
     endpoint: "localhost:2003"  # The address of the Carbon/Graphite server
     timeout: 10s
+    retry_on_failure:
+      enabled: false
+    resource_to_telemetry_conversion:
+      enabled: false
 
 service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [batch, resourcedetection]
-      exporters: [carbon]
+      processors: [batch, resourcedetection, metricstransform/addhost]
+      exporters: [carbon/hostmetrics]
 
 extensions:
   health_check:
