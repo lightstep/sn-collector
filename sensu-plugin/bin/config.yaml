@@ -72,7 +72,7 @@ service:
   pipelines:
     # Convert OTLP traces as graph metrics
     traces:
-      receivers: [otlp, datadog]
+      receivers: [otlp]
       processors: [batch]
       exporters: [servicegraph]
     metrics/servicemap:
