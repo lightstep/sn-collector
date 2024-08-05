@@ -1,3 +1,4 @@
+#!/usr/bin/env ruby
 #
 # Collects OpenTelemetry metrics from a collector Prometheus exporter
 # and converts to Carbon format for the MID server to process.
@@ -8,6 +9,15 @@
 #   - The script will exit with a status code of 2 if there is a failure
 #   - The script will output a message to STDERR if there is a failure
 #
+
+require 'sensu-plugin/check/cli'
+require 'net/http'
+
+DEFAULT_HOST = 'localhost'
+DEFAULT_PORT = 9090
+DEFAULT_TIMEOUT = 10
+DEFAULT_PATH = '/metrics'
+
 class CollectOTelMetrics < Sensu::Plugin::Check::CLI
   option :timeout,
     long: '--timeout TIMEOUT',
