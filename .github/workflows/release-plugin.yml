@@ -46,7 +46,7 @@ jobs:
       - name: Upload Plugin Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sensu-plugin-linux-x86_64-${{ github.ref_name }}.zip
+          name: sensu-plugin-linux-x86_64-${{ github.ref_name }}.tar.gz
           path: /tmp/sensu-plugin/sensu-plugin-linux-x86_64-${{ github.ref_name }}.tar.gz 
           # Short lived because this is meant as an action for developers
           retention-days: 1
