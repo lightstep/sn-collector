@@ -19,6 +19,8 @@ exporters:
       github.com/lightstep/sn-collector/collector/servicenowexporter v0.0.0
   - gomod:
       github.com/open-telemetry/otel-arrow/collector/exporter/otelarrowexporter v0.24.0
+  - gomod:
+      github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.102.0
 
 processors:
   - gomod:
@@ -38,6 +40,8 @@ processors:
       github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.102.0
   - gomod:
       github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.102.0
+  - gomod:
+      github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor v0.102.0
 
 receivers:
   - gomod: 
@@ -72,6 +76,8 @@ receivers:
 connectors:
   - gomod:
       github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.102.0 
+  - gomod:
+      github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector v0.102.0 
 
 extensions:
    - gomod:
