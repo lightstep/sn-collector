@@ -1,0 +1,58 @@
+name: Release Sensu Plugin
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release-plugin:
+    permissions:
+      id-token: write
+      packages: write
+      contents: write
+
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '~1.21.5'
+          check-latest: true
+
+      - name: Install Tools
+        working-directory: collector
+        run: make install-tools
+
+      - name: Build collector
+        working-directory: collector
+        run: make build-linux
+
+      - name: Create Archive
+        working-directory: collector
+        run: |
+          rm -rf /tmp/sensu-plugin
+          mkdir -p /tmp/sensu-plugin
+          cp -R ../sensu-plugin/allow_list /tmp/sensu-plugin
+          cp -R ../sensu-plugin/bin /tmp/sensu-plugin
+          cp ./otelcol-servicenow/otelcol-servicenow /tmp/sensu-plugin/bin/otelcol-servicenow
+          cd /tmp/sensu-plugin
+          zip sensu-plugin-linux-x86_64-${{ github.ref_name }}.zip -r .
+
+      - name: Upload Plugin Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sensu-plugin-linux-x86_64-${{ github.ref_name }}.zip
+          path: /tmp/sensu-plugin/sensu-plugin-linux-x86_64-${{ github.ref_name }}.zip
+          # Short lived because this is meant as an action for developers
+          retention-days: 1
+
+      - name: Add Plugin to Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            sensu-plugin-linux-x86_64-${{ github.ref_name }}.zip

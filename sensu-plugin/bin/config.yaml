@@ -1,0 +1,96 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+  # datadog:
+  #   endpoint: localhost:8126
+  #   read_timeout: 60s
+  hostmetrics:
+    collection_interval: 10s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      load:
+      network:
+      processes:
+
+processors:
+  batch:
+    timeout: 5s
+
+  filter/traces_service_graph_request_total:
+    error_mode: ignore
+    metrics:
+      metric:
+        - name != "traces_service_graph_request_total"
+
+  metricstransform/addhost:
+    transforms:
+      - include: (.*)
+        match_type: regexp
+        action: update
+        new_name: ${env:HOSTNAME}.$${0}
+  resourcedetection:
+    detectors: [env,system]
+
+connectors:
+  servicegraph:
+
+exporters:
+  prometheus/servicegraph:
+    endpoint: localhost:9092
+    send_timestamps: true
+    metric_expiration: 180m
+    enable_open_metrics: true
+    add_metric_suffixes: false
+    resource_to_telemetry_conversion:
+      enabled: false
+
+  # prometheus/datadog:
+  #   endpoint: localhost:9091
+  #   send_timestamps: true
+  #   metric_expiration: 180m
+  #   enable_open_metrics: true
+  #   add_metric_suffixes: false
+  #   resource_to_telemetry_conversion:
+  #     enabled: false
+
+  prometheus/hostmetrics:
+    endpoint: localhost:9090
+    # TODO: should this be be hostname and drop the transform?
+    # namespace: test-space
+    send_timestamps: true
+    metric_expiration: 180m
+    enable_open_metrics: true
+    add_metric_suffixes: false
+    resource_to_telemetry_conversion:
+      enabled: false
+
+service:
+  pipelines:
+    # Convert OTLP traces as graph metrics
+    traces:
+      receivers: [otlp, datadog]
+      processors: [batch]
+      exporters: [servicegraph]
+    metrics/servicemap:
+      receivers: [servicegraph]
+      processors: [filter/traces_service_graph_request_total, batch]
+      exporters: [prometheus/servicegraph]
+
+    # Export Datadog agent metrics
+    # metrics/datadog:
+    #   receivers: [datadog]
+    #   processors: [batch, metricstransform/addhost]
+    #   exporters: [prometheus/datadog]
+
+    # Export host metrics
+    metrics/hostmetrics:
+      receivers: [hostmetrics]
+      processors: [batch, metricstransform/addhost, resourcedetection]
+      exporters: [prometheus/hostmetrics]
+
+extensions:
+  health_check:

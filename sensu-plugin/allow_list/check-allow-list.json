@@ -1,0 +1,9 @@
+[
+    {
+        "args": [
+            ""
+        ],
+        "exec": "otel-metric-collector.rb",
+        "skip_arguments": true
+    }
+]
