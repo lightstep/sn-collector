@@ -17,6 +17,8 @@ DEFAULT_HOST = 'localhost'
 DEFAULT_PORT = 9090
 DEFAULT_TIMEOUT = 10
 DEFAULT_PATH = '/metrics'
+PROCESS_NAME = 'otelcol-servicenow'
+LAUNCH_COLLECTOR_CMD = "HOSTNAME=#{Socket.gethostname} ./#{PROCESS_NAME} --config config.yaml &"
 
 class CollectOTelMetrics < Sensu::Plugin::Check::CLI
   option :timeout,
@@ -31,6 +33,10 @@ class CollectOTelMetrics < Sensu::Plugin::Check::CLI
   option :port,
     long: '--port PORT',
     default: DEFAULT_PORT
+
+    def process_running?()
+      `ps aux | grep -v grep | grep #{PROCESS_NAME}`.lines.count > 0
+    end
 
   # Convert Prometheus format to Carbon format
   def prometheus_to_carbon(prometheus_metric)
@@ -72,6 +78,19 @@ class CollectOTelMetrics < Sensu::Plugin::Check::CLI
   end
 
   def run
+    if !process_running?
+      output = %x{#{LAUNCH_COLLECTOR_CMD} 2>&1} # Capture both stdout and stderr
+      status = $?.exitstatus
+      if status != 0
+        puts output
+        puts status
+        critical "Failed to launch collector: #{output}"
+        exit 1
+      end
+
+      sleep 15
+    end
+
     fetch_and_process_metrics
     exit 0
   end
