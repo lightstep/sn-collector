@@ -1,6 +1,7 @@
 name: Release Sensu Plugin
 
 on:
+  workflow_dispatch:
   push:
     tags: ["v*"]
 
