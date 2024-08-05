@@ -18,7 +18,8 @@ DEFAULT_PORT = 9090
 DEFAULT_TIMEOUT = 10
 DEFAULT_PATH = '/metrics'
 PROCESS_NAME = 'otelcol-servicenow'
-LAUNCH_COLLECTOR_CMD = "HOSTNAME=#{Socket.gethostname} ./#{PROCESS_NAME} --config config.yaml &"
+LOG_FILE = '/tmp/sn-collector.log' # TODO: change this?
+LAUNCH_COLLECTOR_CMD = "HOSTNAME=#{Socket.gethostname} ./#{PROCESS_NAME} --config config.yaml > #{LOG_FILE} 2>&1 &"
 
 class CollectOTelMetrics < Sensu::Plugin::Check::CLI
   option :timeout,
@@ -79,14 +80,8 @@ class CollectOTelMetrics < Sensu::Plugin::Check::CLI
 
   def run
     if !process_running?
-      output = %x{#{LAUNCH_COLLECTOR_CMD} 2>&1} # Capture both stdout and stderr
-      status = $?.exitstatus
-      if status != 0
-        puts output
-        puts status
-        critical "Failed to launch collector: #{output}"
-        exit 1
-      end
+      pid = Process.spawn(LAUNCH_COLLECTOR_CMD)
+      Process.detach(pid)
 
       sleep 15
     end
