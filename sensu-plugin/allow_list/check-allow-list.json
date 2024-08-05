@@ -3,7 +3,7 @@
         "args": [
             ""
         ],
-        "exec": "otel-metrics.rb",
+        "exec": "otel-metric-collector.rb",
         "skip_arguments": true
     }
 ]

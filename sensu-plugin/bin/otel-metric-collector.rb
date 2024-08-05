@@ -1,6 +1,12 @@
 #
-# Collects OpenTelemetry metrics received from a Prometheus exporter
-# and converts to Carbon format for Sensu to process.
+# Collects OpenTelemetry metrics from a collector Prometheus exporter
+# and converts to Carbon format for the MID server to process.
+#
+# Notes:
+#   - The script will output metrics in Carbon format to STDOUT
+#   - The script will exit with a status code of 0 upon success
+#   - The script will exit with a status code of 2 if there is a failure
+#   - The script will output a message to STDERR if there is a failure
 #
 class CollectOTelMetrics < Sensu::Plugin::Check::CLI
   option :timeout,
